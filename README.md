@@ -1,7 +1,3 @@
-Tentu, ini adalah draf `README.md` yang profesional dan lengkap, disesuaikan dengan fitur-fitur yang baru saja kita bangun (Raycasting, AI, Quest System, dan Minimap).
-
----
-
 # FIFTEEN MINUTES REMAINING 🕯️
 
 **Fifteen Minutes Remaining** adalah sebuah game horor psikologis berbasis web yang menggunakan teknik *Retro Raycasting Engine* (seperti Wolfenstein 3D). Pemain terjebak dalam labirin gelap yang bergeser, dikejar oleh entitas misterius bernama **The Watcher**, dan hanya memiliki waktu terbatas untuk melarikan diri.
