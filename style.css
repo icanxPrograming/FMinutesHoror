@@ -1,0 +1,379 @@
+body {
+  margin: 0;
+  background: #000;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: "Courier New", monospace;
+}
+#game-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  image-rendering: pixelated;
+}
+
+#vignette {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    circle,
+    transparent 20%,
+    rgba(0, 0, 0, 0.95) 100%
+  );
+  pointer-events: none;
+}
+#noise-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url("https://www.transparenttextures.com/patterns/stardust.png");
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+#ui-overlay {
+  position: absolute;
+  top: 30px;
+  left: 30px;
+  color: #cc0000;
+  text-shadow: 2px 2px #000;
+  pointer-events: none;
+  z-index: 10;
+  display: flex;
+  flex-direction: column; /* Menyusun elemen secara vertikal ke bawah */
+  gap: 5px;
+}
+#timer {
+  font-size: 42px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+.stat-group {
+  margin-bottom: 10px;
+}
+.stat-group label {
+  font-size: 12px;
+  display: block;
+}
+.stat-bar {
+  width: 200px;
+  height: 8px;
+  background: #200;
+  border: 1px solid #444;
+}
+#stamina-fill {
+  height: 100%;
+  background: #900;
+  width: 100%;
+}
+#sanity-fill {
+  height: 100%;
+  background: #0055ff;
+  width: 100%;
+}
+
+#crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 20px;
+}
+#status-msg {
+  color: #fff;
+  font-size: 14px;
+  margin-top: 15px;
+  font-style: italic;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 5px;
+}
+
+/* Layar Akhir */
+#overlay-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+.hidden {
+  display: none !important;
+}
+
+#minimap-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 200px;
+  height: 200px;
+  border: 2px solid #600;
+  background: rgba(0, 0, 0, 0.8);
+  box-shadow: 0 0 15px rgba(255, 0, 0, 0.2);
+  z-index: 100;
+}
+
+#minimapCanvas {
+  width: 100%;
+  height: 100%;
+}
+
+@keyframes shake {
+  0% {
+    transform: translate(1px, 1px);
+  }
+  20% {
+    transform: translate(-2px, -1px);
+  }
+  40% {
+    transform: translate(2px, 1px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+.low-sanity {
+  animation: shake 0.1s infinite;
+  filter: sepia(0.5) contrast(1.5);
+}
+
+/* Menambahkan gaya judul horor */
+#main-menu {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: #050000;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+}
+.horror-title {
+  font-size: 80px;
+  color: #600;
+  text-shadow: 0 0 15px #f00;
+  margin: 0;
+  letter-spacing: 15px;
+  font-family: "Courier New", serif;
+}
+.horror-subtitle {
+  color: #444;
+  margin-bottom: 50px;
+  font-size: 14px;
+}
+#btn-play {
+  padding: 15px 40px;
+  background: transparent;
+  color: #800;
+  border: 1px solid #400;
+  cursor: pointer;
+  font-size: 20px;
+  transition: all 0.3s;
+}
+#btn-play:hover {
+  background: #300;
+  color: #f00;
+  box-shadow: 0 0 20px #f00;
+}
+.hidden {
+  display: none !important;
+}
+
+/* Overlay Kemenangan */
+.win-screen {
+  background: radial-gradient(circle, #1a1a1a 0%, #000 100%) !important;
+  color: #44ff44 !important;
+  text-shadow: 0 0 10px #00ff00;
+}
+
+/* Overlay Kematian */
+.lose-screen {
+  background: #000 !important;
+  color: #ff0000 !important;
+  text-shadow: 0 0 15px #ff0000;
+  animation: glitch 0.2s infinite;
+}
+
+@keyframes glitch {
+  0% {
+    transform: translate(0);
+  }
+  20% {
+    transform: translate(-5px, 5px);
+  }
+  40% {
+    transform: translate(-5px, -5px);
+  }
+  60% {
+    transform: translate(5px, 5px);
+  }
+  80% {
+    transform: translate(5px, -5px);
+  }
+  100% {
+    transform: translate(0);
+  }
+}
+
+#death-reason {
+  font-size: 18px;
+  margin: 20px 0;
+  letter-spacing: 2px;
+}
+
+/* Pastikan prompt interaksi terlihat jelas di tengah */
+#interaction-prompt {
+  display: none; /* Sembunyikan default */
+  position: absolute;
+  top: 60%; /* Letakkan sedikit di bawah tengah layar */
+  left: 50%;
+  transform: translate(-50%, -50%); /* Sentralisasi sempurna */
+
+  /* Styling agar terlihat jelas di area gelap */
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: bold;
+  text-shadow:
+    0 0 10px #ff0000,
+    2px 2px 2px #000;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 10px 25px;
+  border: 2px solid #600;
+  border-radius: 5px;
+  z-index: 50; /* Di atas canvas, di bawah paper-ui */
+  pointer-events: none;
+  letter-spacing: 2px;
+}
+
+/* Container Checklist di bawah Sanity */
+#quest-list-container {
+  margin-top: 15px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 10px;
+  border-radius: 5px;
+  border-left: 3px solid #600;
+}
+
+.quest-item {
+  font-size: 14px;
+  color: #bbb;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.quest-item.active {
+  color: #fff;
+  text-shadow: 0 0 5px #f00;
+}
+.quest-item.done {
+  color: #44ff44;
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+.check-mark {
+  font-weight: bold;
+}
+
+/* style.css */
+#paper-ui {
+  display: none; /* WAJIB: Sembunyikan saat awal game */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); /* Agar tepat di tengah layar */
+  width: 400px; /* Atur lebar kertas */
+  min-height: 500px; /* Atur tinggi kertas */
+  background: #fdf5e6;
+  color: #2b1d0e;
+  font-family: "Georgia", serif;
+  line-height: 1.6;
+  border: 1px solid #d2b48c;
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.9);
+  padding: 40px;
+  z-index: 1000; /* Pastikan di atas semua elemen UI */
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  pointer-events: all; /* Agar bisa menerima input */
+}
+.paper-text {
+  font-size: 20px;
+  margin-bottom: 20px;
+}
+.paper-footer {
+  font-size: 12px;
+  color: #8b4513;
+}
+
+#paper-ui::before {
+  /* Efek sobekan */
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 5px;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 5px,
+    #c5b396 5px,
+    #c5b396 10px
+  );
+}
+
+@keyframes blink-soft {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    border-left-color: #002266;
+  }
+  50% {
+    border-left-color: #0055ff;
+  }
+  100% {
+    border-left-color: #002266;
+  }
+}
+
+#safe-zone-timer {
+  position: fixed;
+  top: 30px;
+  right: 30px;
+  color: #44ff44;
+  font-size: 24px;
+  font-weight: bold;
+  text-shadow: 0 0 10px #00ff00;
+  display: none;
+}

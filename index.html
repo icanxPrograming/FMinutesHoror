@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <title>FIFTEEN MINUTES REMAINING</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="game-container">
+      <div id="main-menu">
+        <div id="noise-overlay"></div>
+        <h1 class="horror-title">F MINUTES</h1>
+        <p class="horror-subtitle">WAKTU HANYA ILUSI YANG MEMATIKAN</p>
+        <button id="btn-play">KLIK UNTUK BERMAIN</button>
+      </div>
+
+      <div id="game-content" class="hidden">
+        <div id="vignette"></div>
+        <div id="noise-overlay"></div>
+        <div id="ui-overlay">
+          <div id="timer">15:00</div>
+
+          <div class="stat-group">
+            <label>STAMINA</label>
+            <div class="stat-bar"><div id="stamina-fill"></div></div>
+          </div>
+
+          <div class="stat-group">
+            <label>SANITY</label>
+            <div class="stat-bar"><div id="sanity-fill"></div></div>
+          </div>
+
+          <div id="minimap-container">
+            <canvas id="minimapCanvas"></canvas>
+          </div>
+
+          <div id="quest-list-container"></div>
+
+          <div id="safe-zone-timer"></div>
+
+          <div id="quest-overlay"></div>
+
+          <div id="status-msg"></div>
+        </div>
+        <div id="interaction-prompt"></div>
+        <div id="paper-ui"></div>
+        <canvas id="gameCanvas"></canvas>
+        <div id="crosshair">+</div>
+      </div>
+
+      <div id="overlay-screen" class="hidden">
+        <h1 id="screen-title">TERTANGKAP</h1>
+        <p id="death-reason">The Watcher menemukanmu dalam kegelapan.</p>
+        <button onclick="location.reload()">COBA LAGI</button>
+      </div>
+    </div>
+    <script type="module" src="main.js"></script>
+  </body>
+</html>
