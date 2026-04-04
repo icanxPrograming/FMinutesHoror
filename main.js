@@ -254,6 +254,8 @@ function update() {
 
   // --- PERGERAKAN & COLLISION ---
   const baseSpeed = 0.02;
+  const forwardMove = (keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0);
+  const strafeMove = (keys["KeyD"] ? 1 : 0) - (keys["KeyA"] ? 1 : 0);
   let moveStep = 0;
   const isRunning = keys["ShiftLeft"] && player.stamina > 0 && keys["KeyW"];
 
@@ -262,15 +264,15 @@ function update() {
     player.stamina -= 0.6;
     targetFOV = Math.PI / 1.8;
   } else {
-    if (keys["KeyW"]) moveStep = baseSpeed;
-    if (keys["KeyS"]) moveStep = -baseSpeed * 0.6;
+    if (forwardMove > 0) moveStep = baseSpeed;
+    if (forwardMove < 0) moveStep = -baseSpeed * 0.6;
     if (player.stamina < 100) player.stamina += 0.25;
     targetFOV = Math.PI / 2.2;
   }
   currentFOV += (targetFOV - currentFOV) * 0.1;
 
   // Head Bobbing
-  if (moveStep !== 0) {
+  if (moveStep !== 0 || strafeMove !== 0) {
     walkCycle += isRunning ? 0.25 : 0.15;
     cameraBobX = Math.cos(walkCycle) * (isRunning ? 0.15 : 0.08);
     cameraBobY = Math.sin(walkCycle * 2) * (isRunning ? 0.1 : 0.05);
@@ -279,8 +281,15 @@ function update() {
     cameraBobY *= 0.9;
   }
 
-  let nx = player.x + Math.cos(player.dir + cameraBobX) * moveStep;
-  let ny = player.y + Math.sin(player.dir + cameraBobX) * moveStep;
+  const strafeStep = baseSpeed;
+  let nx =
+    player.x +
+    Math.cos(player.dir + cameraBobX) * moveStep +
+    Math.cos(player.dir + Math.PI / 2 + cameraBobX) * strafeStep * strafeMove;
+  let ny =
+    player.y +
+    Math.sin(player.dir + cameraBobX) * moveStep +
+    Math.sin(player.dir + Math.PI / 2 + cameraBobX) * strafeStep * strafeMove;
   let walkCell = MAP[Math.floor(ny)] ? MAP[Math.floor(ny)][Math.floor(nx)] : 1;
 
   // Player hanya bisa lewat jika lantai (0) atau safe zone (2)
@@ -358,6 +367,8 @@ function endGame(status) {
     backsound.pause();
     screen.classList.add("win-screen");
     document.getElementById("screen-title").innerText = "TERLEPAS";
+    document.getElementById("death-reason").innerText =
+      "Kamu selamat hari ini, tapi itu hanya ilusi.";
     document.getElementById("game-content").style.filter =
       "brightness(2) blur(10px)";
   } else {
