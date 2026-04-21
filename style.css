@@ -54,9 +54,89 @@ canvas {
   left: 0;
   width: 100%;
   height: 100%;
-  background: url("https://www.transparenttextures.com/patterns/stardust.png");
-  opacity: 0.15;
-  pointer-events: none;
+  pointer-events: none; /* Agar tidak menghalangi klik mouse */
+  z-index: 5;
+  opacity: 0; /* Awalnya tidak terlihat */
+  background-image: url("https://www.transparenttextures.com/patterns/stardust.png"); /* Contoh tekstur noise */
+  background-repeat: repeat;
+  mix-blend-mode: overlay;
+}
+
+/* Opsional: Animasi agar noise terlihat bergetar */
+@keyframes noise-animation {
+  0% {
+    transform: translate(0, 0);
+  }
+  10% {
+    transform: translate(-1%, -1%);
+  }
+  20% {
+    transform: translate(1%, 1%);
+  }
+  30% {
+    transform: translate(-2%, 1%);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+.active-noise {
+  animation: noise-animation 0.2s infinite;
+}
+
+/* style.css */
+.overlay-full {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: black;
+  color: #eee;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  text-align: center;
+}
+
+.content-box {
+  max-width: 600px;
+  padding: 20px;
+  border: 1px solid #330000;
+  background: rgba(10, 0, 0, 0.9);
+}
+
+.warning-text {
+  color: #ff0000;
+  letter-spacing: 5px;
+  font-size: 2rem;
+}
+
+.tutorial-grid {
+  text-align: left;
+}
+
+.tutorial-item {
+  margin: 15px 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #222;
+  font-size: 0.9rem;
+}
+
+/* Animasi Fade In */
+.fade-in {
+  animation: fadeIn 1s forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 #ui-overlay {
@@ -268,7 +348,9 @@ canvas {
   }
 }
 
-#btn-play {
+#btn-play,
+#btn-to-tutorial,
+#btn-start-game {
   padding: 16px 42px;
   background: linear-gradient(
     135deg,
@@ -291,7 +373,9 @@ canvas {
     box-shadow 0.2s ease,
     background 0.2s ease;
 }
-#btn-play:hover {
+#btn-play:hover,
+#btn-to-tutorial:hover,
+#btn-start-game:hover {
   transform: scale(1.02);
   background: linear-gradient(
     135deg,
@@ -311,6 +395,57 @@ canvas {
 }
 .hidden {
   display: none !important;
+}
+
+/* style.css */
+
+.stage-title {
+  font-size: 3rem;
+  letter-spacing: 10px;
+  color: #8b0000; /* Merah gelap */
+  text-shadow: 0 0 15px rgba(255, 0, 0, 0.7);
+  margin-bottom: 10px;
+  animation: flicker 3s infinite;
+}
+
+.stage-subtitle {
+  font-size: 1.2rem;
+  letter-spacing: 5px;
+  color: #666;
+}
+
+/* Efek kedip halus untuk kesan horor */
+@keyframes flicker {
+  0%,
+  18%,
+  22%,
+  25%,
+  53%,
+  57%,
+  100% {
+    opacity: 1;
+  }
+  20%,
+  24%,
+  55% {
+    opacity: 0.4;
+  }
+}
+
+/* Animasi masuk dan keluar untuk seluruh layar stage */
+.fade-out-scene {
+  animation: fadeOutScene 2s forwards;
+  pointer-events: none;
+}
+
+@keyframes fadeOutScene {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
 }
 
 /* Overlay Kemenangan */
