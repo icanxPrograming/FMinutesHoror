@@ -1,60 +1,74 @@
-# FIFTEEN MINUTES REMAINING 🕯️
-
-**Fifteen Minutes Remaining** adalah sebuah game horor psikologis berbasis web yang menggunakan teknik *Retro Raycasting Engine* (seperti Wolfenstein 3D). Pemain terjebak dalam labirin gelap yang bergeser, dikejar oleh entitas misterius bernama **The Watcher**, dan hanya memiliki waktu terbatas untuk melarikan diri.
-
-## 🕹️ Fitur Utama
-
-* **Retro Raycasting Engine**: Grafis 3D klasik yang dirender secara *real-time* menggunakan HTML5 Canvas.
-* **Dynamic AI (The Watcher)**: Entitas yang berpatroli dan akan mengejar pemain jika terlihat. Semakin lama waktu berjalan, entitas akan menjadi lebih agresif.
-* **Quest Berantai**: Sistem objektif yang mengharuskan pemain menemukan petunjuk (Clues) dan kunci secara berurutan.
-* **Minimap & Navigasi**: Sistem radar di pojok layar dan kompas jarak untuk membantu pemain bernavigasi di kegelapan.
-* **Mekanik Sanity & Stamina**: Penglihatan pemain akan kabur dan suara detak jantung akan mengeras jika terlalu dekat dengan musuh.
+Tentu! Ini adalah versi **README.md** yang telah diperbarui ke **V.2.0**. Versi ini mencerminkan perubahan mekanik terbaru yang telah kita buat: penghilangan minimap untuk atmosfer yang lebih menantang, sistem objektif non-linear yang terkunci oleh catatan (Note-Gated), serta penambahan efek audio pernapasan dan visual stamina yang lebih realistis.
 
 ---
 
-## 🎮 Cara Bermain
+# 🕯️ FIFTEEN MINUTES V.2.0: THE SILENT LABYRINTH
 
-1. **Tujuan Utama**: Temukan 3 kunci/petunjuk tersembunyi untuk membuka **Pintu Keluar Utama** sebelum waktu 15 menit habis.
-2. **Kontrol**:
-* **W/A/S/D**: Bergerak dan Berjalan.
-* **Mouse**: Melihat sekeliling (Pointer Lock).
-* **Shift**: Berlari (Mengonsumsi Stamina).
-* **E**: Berinteraksi dengan objek (Kertas/Kunci/Pintu).
-* **ESC**: Menutup kertas petunjuk atau keluar dari game.
+**Fifteen Minutes V.2.0** adalah evolusi dari game horor psikologis berbasis web yang menggunakan teknik *Retro Raycasting Engine*. Dalam versi ini, bantuan navigasi visual telah ditarik, memaksa pemain untuk benar-benar merasakan isolasi dan ketakutan di dalam kegelapan yang pekat.
 
+## 🕹️ Fitur Utama (V.2.0)
 
-3. **Safe Zone**: Cari lantai berwarna hijau untuk bersembunyi. The Watcher tidak bisa masuk ke area ini selama *Safe Timer* aktif.
-
----
-
-## 🛠️ Arsitektur Kode
-
-Game ini dibangun secara modular menggunakan ES6 Modules:
-
-* `index.html`: Struktur UI, bar stamina, sanity, dan container minimap.
-* `style.css`: Atmosfer horor, filter *noise*, efek *vignette*, dan animasi *jumpscare*.
-* `main.js`: *Game Loop* utama, logika pergerakan pemain, dan manajemen quest.
-* `engine.js`: Mesin render 3D (Raycasting), sprite rendering, dan visual minimap.
-* `ai.js`: Logika perilaku musuh (Patroli, Chase, dan Collision).
-* `config.js`: Pengaturan variabel game, daftar quest, dan desain `MAP` 2D.
-* `assets.js`: Manajemen suara (Backsound, Heartbeat) dan gambar sprite.
+* **Atmospheric Realism (No Minimap)**: Minimap telah dihapus sepenuhnya. Pemain kini harus mengandalkan insting, hafal lorong, dan teks navigasi jarak untuk bertahan hidup.
+* **Adaptive Non-Linear Objectives**: Pemain kini memiliki kebebasan untuk mengambil kunci atau item koleksi (Buku/Artefak) dalam urutan apa pun, selama **Note (Catatan)** di stage tersebut telah dibaca.
+* **Physical Exit Logic**: Pintu keluar hanya akan terbuka secara fisik jika seluruh item di dalam peta telah dikumpulkan. Tidak ada jalan pintas.
+* **Dynamic Soundscape**:
+    * **Footsteps**: Perbedaan suara antara berjalan (`walk.mp3`) dan berlari (`running.mp3`).
+    * **Breathing**: Suara napas berat yang muncul saat stamina di bawah 15% atau saat dikejar oleh The Watcher.
+* **Stamina & Visual Stress**: Jika stamina habis, pemain otomatis melambat. Stamina rendah juga memicu efek *noise overlay* dan pandangan kabur (*blur*) karena kelelahan.
 
 ---
 
-## 🚀 Instalasi & Penggunaan
+## 🎮 Mekanik Permainan
 
-Karena game ini menggunakan **ES6 Modules**, Anda tidak bisa membukanya langsung via `file://`. Anda perlu menggunakan *Local Server*.
-
-1. Clone atau unduh repository ini.
-2. Gunakan **Live Server** di VS Code atau jalankan perintah python di folder project:
-
-## 📝 Catatan Pengembangan
-
-* **Penyelesaian Masalah Visual**: Engine ini menggunakan *clamping* pada tinggi dinding untuk mencegah *overflow* visual saat pemain sangat dekat dengan objek.
-* **X-Ray Objective**: Khusus untuk Pintu Keluar, engine akan merender pilar cahaya kuning tembus pandang setelah pemain mengumpulkan seluruh kunci.
+1.  **Gerbang Catatan (Note-Gated)**: Setiap Stage diawali dengan sebuah catatan wajib. Kamu tidak bisa berinteraksi dengan item lain sebelum membaca catatan ini.
+2.  **Eksplorasi Bebas**: Setelah catatan dibaca, kumpulkan seluruh objektif yang tersebar.
+3.  **The Watcher**: Semakin dekat dia, detak jantungmu akan mengeras, layar akan mulai bergetar, dan *noise* visual akan menutupi pandanganmu.
+4.  **Kontrol**:
+    * **W/A/S/D**: Pergerakan (Kecepatan berkurang saat stamina habis).
+    * **Shift (Hold)**: Berlari (Mengonsumsi Stamina).
+    * **E**: Interaksi (Membaca, Mengambil item, Membuka Pintu).
+    * **ESC**: Menutup antarmuka kertas petunjuk.
 
 ---
 
-## ⚖️ Lisensi
+## 🛠️ Arsitektur Kode (Modular)
 
-Proyek ini dibuat untuk tujuan pembelajaran dan hiburan. Silakan modifikasi kode ini untuk membuat labirin horor Anda sendiri!
+* `main.js`: Logika transisi stage (V.2.0), manajemen stamina, audio sinkronisasi, dan deteksi interaksi objektif.
+* `engine.js`: Render Raycasting 3D yang dioptimalkan untuk FPS tinggi dengan resolusi render internal 50%.
+* `ai.js`: Perilaku entitas (Patroli A* & Chase Mode) yang terintegrasi dengan efek peringatan jarak.
+* `config.js`: Definisi 3 Stage unik (Library, Basement, Altar) dan database objektif `QUEST_LIST`.
+* `assets.js`: Pusat manajemen 12+ aset audio dan sprite tekstur.
+
+---
+
+## 🚀 Instalasi & Jalankan
+
+Game ini menggunakan **ES6 Modules**. Pastikan Anda menjalankan melalui server lokal untuk menghindari isu CORS.
+
+1.  Clone/Download file.
+2.  Gunakan **Live Server** di VS Code atau jalankan perintah berikut di terminal:
+    ```bash
+    # Python 3
+    python -m http.server 8000
+    ```
+3.  Buka `http://localhost:8000` di browser Anda.
+
+---
+
+## 📝 Catatan Versi 2.0 (Developer Notes)
+
+* **Audio Stability**: Perbaikan pada *IndexSizeError* volume suara dengan implementasi `Math.max(0, Math.min(1, vol))` pada seluruh audio dinamis.
+* **Navigation Fallback**: Sistem navigasi jarak kini bersifat adaptif; ia akan otomatis mencari item terdekat yang masih tersisa di peta (Buku -> Kunci -> Pintu).
+* **Optimasi Visual**: Penggunaan *Noise Overlay* yang lebih halus dan sinkron dengan status stamina pemain untuk meningkatkan imersi horor.
+
+---
+
+## ⚖️ Lisensi & Kredit
+
+Dibuat untuk para pecinta horor retro. Gunakan kode ini untuk membangun mimpi burukmu sendiri.
+
+**"Waktu terus berjalan... dan dia tidak pernah berkedip."**
+
+*Ilustrasi: Tampilan UI minimalis V.2.0 yang lebih bersih dan menakutkan tanpa bantuan radar.*
+
+Apakah README ini sudah cukup merepresentasikan visi terbaru dari game kamu?
