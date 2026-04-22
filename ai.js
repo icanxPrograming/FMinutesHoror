@@ -1,16 +1,110 @@
 import { STATES } from "./config.js";
 
 const SAFE_ZONE_BUFFER = 5;
-const DETECTION_RADIUS = 7;
-const CHASE_MAX_RADIUS = 12;
+const DETECTION_RADIUS = 5;
+const CHASE_MAX_RADIUS = 8;
+const MAX_SIGHT_DIST = 10;
 
-// 1. Raycast LOS tetap sama
+// --- FUNGSI BARU: Pengecekan Benda Padat ---
+// Kita buat satu fungsi pusat agar jika ada ID tembok baru, cukup ubah di sini
+function isSolid(cell) {
+  // 1: Tembok S1, 3: Pintu, 10: Tembok S2, 20: Tembok S3
+  return cell === 1 || cell === 3 || cell === 10 || cell === 20;
+}
+
+// --- FUNGSI HELPER A* ---
+
+function heuristic(a, b) {
+  // Menggunakan Manhattan Distance
+  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+}
+
+function getPathAStar(startGrid, targetGrid, map) {
+  const openList = [];
+  const closedList = new Set();
+
+  openList.push({
+    x: startGrid.x,
+    y: startGrid.y,
+    g: 0,
+    h: heuristic(startGrid, targetGrid),
+    f: 0,
+    parent: null,
+  });
+
+  while (openList.length > 0) {
+    let lowIdx = 0;
+    for (let i = 0; i < openList.length; i++) {
+      if (openList[i].f < openList[lowIdx].f) lowIdx = i;
+    }
+    let current = openList[lowIdx];
+
+    if (current.x === targetGrid.x && current.y === targetGrid.y) {
+      let path = [];
+      let curr = current;
+      while (curr.parent) {
+        path.push({ x: curr.x + 0.5, y: curr.y + 0.5 });
+        curr = curr.parent;
+      }
+      return path.reverse();
+    }
+
+    openList.splice(lowIdx, 1);
+    closedList.add(`${current.x},${current.y}`);
+
+    // Cek 4 arah (Tetangga)
+    const neighbors = [
+      { x: current.x, y: current.y - 1 },
+      { x: current.x, y: current.y + 1 },
+      { x: current.x - 1, y: current.y },
+      { x: current.x + 1, y: current.y },
+    ];
+
+    for (let neighbor of neighbors) {
+      if (
+        neighbor.x < 0 ||
+        neighbor.x >= map[0].length ||
+        neighbor.y < 0 ||
+        neighbor.y >= map.length ||
+        isSolid(map[neighbor.y][neighbor.x]) || // PERBAIKAN: Menggunakan isSolid
+        closedList.has(`${neighbor.x},${neighbor.y}`)
+      ) {
+        continue;
+      }
+
+      let gScore = current.g + 1;
+      let bestG = false;
+
+      let existingNode = openList.find(
+        (el) => el.x === neighbor.x && el.y === neighbor.y,
+      );
+
+      if (!existingNode) {
+        bestG = true;
+        neighbor.h = heuristic(neighbor, targetGrid);
+        openList.push(neighbor);
+      } else if (gScore < existingNode.g) {
+        bestG = true;
+        neighbor = existingNode;
+      }
+
+      if (bestG) {
+        neighbor.parent = current;
+        neighbor.g = gScore;
+        neighbor.f = neighbor.g + neighbor.h;
+      }
+    }
+  }
+  return []; // Tidak ditemukan jalan
+}
+
+// --- FUNGSI AI UTAMA ---
+
 export function canSeePlayer(watcher, player, map) {
   const dx = player.x - watcher.x;
   const dy = player.y - watcher.y;
   const distance = Math.hypot(dx, dy);
-
-  if (distance > 10) return false;
+  if (distance > MAX_SIGHT_DIST) return false;
 
   const steps = Math.ceil(distance * 10);
   const stepX = dx / steps;
@@ -19,7 +113,6 @@ export function canSeePlayer(watcher, player, map) {
   for (let i = 0; i <= steps; i++) {
     const checkX = Math.floor(watcher.x + stepX * i);
     const checkY = Math.floor(watcher.y + stepY * i);
-
     if (
       checkY < 0 ||
       checkY >= map.length ||
@@ -27,29 +120,20 @@ export function canSeePlayer(watcher, player, map) {
       checkX >= map[0].length
     )
       return false;
-    if (map[checkY][checkX] === 1) return false;
+    const cell = map[checkY][checkX];
+    if (isSolid(map[checkY][checkX])) return false;
   }
   return true;
 }
 
-export function isPlayerInFront(watcher, player, watcherDir) {
-  const angleToPlayer = Math.atan2(player.y - watcher.y, player.x - watcher.x);
-  let angleDiff = angleToPlayer - watcherDir;
-  while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-  while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-  return Math.abs(angleDiff) < Math.PI / 1.8;
-}
-
-// --- PERBAIKAN PATROL ROUTE (Jangkauan lebih luas) ---
+// Tambahkan ini di ai.js agar main.js tidak error
 export function generatePatrolRoute(map) {
   const route = [];
   const mapHeight = map.length;
   const mapWidth = map[0].length;
-
-  // Kita ambil titik setiap 3 atau 4 blok agar daftar rute tidak terlalu padat
-  // namun tersebar merata di seluruh map
   for (let y = 1; y < mapHeight - 1; y += 2) {
     for (let x = 1; x < mapWidth - 1; x += 2) {
+      // PERBAIKAN: Rute patroli hanya di lantai (0), bukan di tembok S2/S3
       if (map[y][x] === 0) {
         const distFromSpawn = Math.hypot(x - 1.5, y - 1.5);
         if (distFromSpawn > SAFE_ZONE_BUFFER) {
@@ -61,35 +145,22 @@ export function generatePatrolRoute(map) {
   return route;
 }
 
-// --- PERBAIKAN PICK TARGET (Loncat antar titik jauh) ---
+export function isPlayerInFront(watcher, player, watcherDir) {
+  const angleToPlayer = Math.atan2(player.y - watcher.y, player.x - watcher.x);
+  let angleDiff = angleToPlayer - watcherDir;
+  while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+  while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+  return Math.abs(angleDiff) < Math.PI / 1.8;
+}
+
 export function pickNewPatrolTarget(watcher, map, patrolRoute = null) {
   if (patrolRoute && patrolRoute.length > 0) {
-    // Alih-alih urut +1, kita loncat (misal +5 atau angka acak)
-    // supaya Watcher berpindah dari ujung koridor ke ujung lainnya
     const jump = Math.floor(Math.random() * 5) + 3;
-    if (watcher.lastPatrolIndex === undefined) watcher.lastPatrolIndex = 0;
-
     watcher.lastPatrolIndex =
-      (watcher.lastPatrolIndex + jump) % patrolRoute.length;
+      ((watcher.lastPatrolIndex || 0) + jump) % patrolRoute.length;
     const target = patrolRoute[watcher.lastPatrolIndex];
-
     watcher.targetX = target.x;
     watcher.targetY = target.y;
-  } else {
-    // Fallback random yang lebih agresif mencari koordinat jauh
-    let rx, ry;
-    let attempts = 0;
-    do {
-      rx = Math.floor(Math.random() * (map[0].length - 2)) + 1;
-      ry = Math.floor(Math.random() * (map.length - 2)) + 1;
-      attempts++;
-    } while (
-      attempts < 100 &&
-      (map[ry][rx] !== 0 || Math.hypot(rx - 1.5, ry - 1.5) < SAFE_ZONE_BUFFER)
-    );
-
-    watcher.targetX = rx + 0.5;
-    watcher.targetY = ry + 0.5;
   }
 }
 
@@ -106,72 +177,93 @@ export function updateAI(
   const distToSpawn = Math.hypot(player.x - 1.5, player.y - 1.5);
   const playerIsSafe = inSafeZone || distToSpawn < SAFE_ZONE_BUFFER;
   const canSee = canSeePlayer(watcher, player, map);
-  const inFront = isPlayerInFront(watcher, player, watcher.moveAngle || 0);
 
-  // State Logic
+  // 1. STATE SWITCHING
   if (playerIsSafe) {
     if (watcher.state === STATES.CHASE) {
       watcher.state = STATES.PATROL;
+      watcher.path = [];
       pickTargetFn(watcher, map, patrolRoute);
     }
   } else {
     if (watcher.state === STATES.CHASE) {
+      // Berhenti mengejar jika terlalu jauh (Radius Lepas)
       if (dist > CHASE_MAX_RADIUS) {
         watcher.state = STATES.PATROL;
+        watcher.path = [];
         pickTargetFn(watcher, map, patrolRoute);
       }
-    } else if (canSee && inFront) {
-      watcher.state = STATES.CHASE;
+    } else {
+      // MULAI MENGEJAR HANYA JIKA:
+      // 1. Terlihat (canSee)
+      // 2. Berada dalam jarak deteksi (dist <= DETECTION_RADIUS)
+      if (canSee && dist <= DETECTION_RADIUS) {
+        watcher.state = STATES.CHASE;
+      }
     }
   }
 
-  let watcherMoveAngle = 0;
-  let watcherSpeed = 0;
+  // 2. A* PATHFINDING LOGIC (PERBAIKAN UTAMA)
+  const targetGrid =
+    watcher.state === STATES.CHASE
+      ? { x: Math.floor(player.x), y: Math.floor(player.y) }
+      : { x: Math.floor(watcher.targetX), y: Math.floor(watcher.targetY) };
 
-  if (watcher.state === STATES.CHASE) {
-    watcherMoveAngle = Math.atan2(player.y - watcher.y, player.x - watcher.x);
-    watcherSpeed = dist < 4 ? 0.025 : dist < DETECTION_RADIUS ? 0.02 : 0.01;
-  } else {
-    watcherMoveAngle = Math.atan2(
-      watcher.targetY - watcher.y,
-      watcher.targetX - watcher.x,
-    );
-    watcherSpeed = 0.012;
+  // Hitung ulang path jika:
+  // - Belum punya path
+  // - Path sudah habis
+  // - Target (Pemain) pindah ke ubin/tile yang berbeda
+  // - Secara berkala (setiap 30 frame) untuk sinkronisasi
+  const targetMoved =
+    !watcher.lastTargetGrid ||
+    watcher.lastTargetGrid.x !== targetGrid.x ||
+    watcher.lastTargetGrid.y !== targetGrid.y;
 
-    if (
-      Math.hypot(watcher.targetX - watcher.x, watcher.targetY - watcher.y) < 0.5
-    ) {
-      pickTargetFn(watcher, map, patrolRoute);
+  if (
+    !watcher.path ||
+    watcher.path.length === 0 ||
+    targetMoved ||
+    Math.floor(gameTime * 60) % 30 === 0
+  ) {
+    const startGrid = { x: Math.floor(watcher.x), y: Math.floor(watcher.y) };
+    watcher.path = getPathAStar(startGrid, targetGrid, map);
+    watcher.lastTargetGrid = targetGrid; // Simpan posisi target terakhir
+  }
+
+  let moveX = 0;
+  let moveY = 0;
+  let watcherSpeed =
+    watcher.state === STATES.CHASE ? (dist < 4 ? 0.025 : 0.02) : 0.012;
+
+  // 3. MOVEMENT LOGIC (PATH FOLLOWING)
+  if (watcher.path && watcher.path.length > 0) {
+    const nextStep = watcher.path[0];
+    const angle = Math.atan2(nextStep.y - watcher.y, nextStep.x - watcher.x);
+    watcher.moveAngle = angle;
+
+    moveX = Math.cos(angle) * watcherSpeed;
+    moveY = Math.sin(angle) * watcherSpeed;
+
+    // Toleransi ditingkatkan ke 0.2 agar gerakan lebih smooth dan tidak stuck di waypoint
+    if (Math.hypot(nextStep.x - watcher.x, nextStep.y - watcher.y) < 0.2) {
+      watcher.path.shift();
     }
-  }
-
-  watcher.moveAngle = watcherMoveAngle;
-
-  // --- PERBAIKAN COLLISION (Sliding Movement) ---
-  // Menggunakan buffer yang lebih dinamis agar Watcher bisa "menggelincir" di tembok
-  const cosA = Math.cos(watcherMoveAngle);
-  const sinA = Math.sin(watcherMoveAngle);
-  const wallBuffer = 0.3; // Jarak aman dari pusat Watcher ke tembok
-
-  // Cek per sumbu secara terpisah untuk memungkinkan sliding
-  const nextX = watcher.x + cosA * watcherSpeed;
-  const nextY = watcher.y + sinA * watcherSpeed;
-
-  // Cek tabrakan di sumbu X
-  const checkX = nextX + (cosA > 0 ? wallBuffer : -wallBuffer);
-  if (map[Math.floor(watcher.y)][Math.floor(checkX)] === 0) {
-    watcher.x = nextX;
   } else if (watcher.state === STATES.PATROL) {
-    // Jika patroli mentok tembok, cari target baru lebih cepat
+    // Jika path kosong saat patroli, artinya sudah sampai tujuan, ambil target baru
     pickTargetFn(watcher, map, patrolRoute);
   }
 
-  // Cek tabrakan di sumbu Y
-  const checkY = nextY + (sinA > 0 ? wallBuffer : -wallBuffer);
-  if (map[Math.floor(checkY)][Math.floor(watcher.x)] === 0) {
-    watcher.y = nextY;
-  } else if (watcher.state === STATES.PATROL) {
-    pickTargetFn(watcher, map, patrolRoute);
+  // 4. COLLISION DETECTION (SLIDING) - PERBAIKAN UTAMA
+  const buffer = 0.2;
+  const checkX = watcher.x + moveX + (moveX > 0 ? buffer : -buffer);
+  const checkY = watcher.y + moveY + (moveY > 0 ? buffer : -buffer);
+
+  // Pastikan pengecekan grid map[y][x] tidak menabrak tembok S2/S3
+  if (!isSolid(map[Math.floor(watcher.y)][Math.floor(checkX)])) {
+    watcher.x += moveX;
+  }
+  if (!isSolid(map[Math.floor(checkY)][Math.floor(watcher.x)])) {
+    watcher.y += moveY;
   }
 
   return dist;

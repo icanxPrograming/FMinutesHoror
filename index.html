@@ -17,10 +17,9 @@
         <div class="content-box">
           <h2 class="warning-text">PERINGATAN</h2>
           <p>
-            Game ini mengandung **Jumpscare**, kilatan cahaya, dan atmosfer yang
-            mencekam.
+            Game ini mengandung <b>Jumpscare</b>, dan atmosfer yang mencekam.
           </p>
-          <p>Gunakan **Headphone** untuk pengalaman audio yang maksimal.</p>
+          <p>Gunakan <b>Headphone</b> untuk pengalaman audio yang maksimal.</p>
           <button id="btn-to-tutorial">MENGERTI</button>
         </div>
       </div>
@@ -37,21 +36,25 @@
             kelelahan saat dikejar.
           </div>
           <div class="tutorial-item">
-            <strong>SANITY:</strong> Jangan terlalu dekat dengan *The Watcher*.
-            Kegelapan akan membutakanmu.
+            <strong>SANITY:</strong> Jangan terlalu dekat dengan
+            <b>The Watcher</b>. Kegelapan akan membutakanmu.
           </div>
           <div class="tutorial-item">
-            <strong>MISI:</strong> Temukan Pesan -> Cari Kunci -> Buka Pintu
-            Utama -> **LARI.**
+            <strong>MISI:</strong> Bertahan hidup selama 15 menit dalam 3 stage,
+            temukan petunjuk untuk melarikan diri.
           </div>
           <button id="btn-start-game">MASUK KE LABIRIN</button>
         </div>
       </div>
 
-      <div id="stage-screen" class="hidden overlay-full">
+      <div
+        id="stage-screen"
+        style="pointer-events: none"
+        class="hidden overlay-full"
+      >
         <div class="stage-content">
-          <h1 class="stage-title">WELCOME TO HAUNTED LIBRARY</h1>
-          <p class="stage-subtitle">— STAGE 1 —</p>
+          <h1 id="stage-title-text" class="stage-title"></h1>
+          <p id="stage-subtitle-text" class="stage-subtitle"></p>
         </div>
       </div>
 
@@ -71,9 +74,9 @@
             <div class="stat-bar"><div id="sanity-fill"></div></div>
           </div>
 
-          <div id="minimap-container">
+          <!-- <div id="minimap-container">
             <canvas id="minimapCanvas"></canvas>
-          </div>
+          </div> -->
 
           <div id="quest-list-container"></div>
 
@@ -92,7 +95,7 @@
       <div id="overlay-screen" class="hidden">
         <h1 id="screen-title">TERTANGKAP</h1>
         <p id="death-reason">The Watcher menemukanmu dalam kegelapan.</p>
-        <button onclick="location.reload()">COBA LAGI</button>
+        <button id="btn-reload" onclick="location.reload()">COBA LAGI</button>
       </div>
     </div>
     <script type="module" src="main.js"></script>

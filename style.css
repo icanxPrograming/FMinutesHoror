@@ -85,22 +85,6 @@ canvas {
   animation: noise-animation 0.2s infinite;
 }
 
-/* style.css */
-.overlay-full {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: black;
-  color: #eee;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 100;
-  text-align: center;
-}
-
 .content-box {
   max-width: 600px;
   padding: 20px;
@@ -215,7 +199,7 @@ canvas {
   display: none !important;
 }
 
-#minimap-container {
+/* #minimap-container {
   position: fixed;
   bottom: 20px;
   right: 20px;
@@ -230,7 +214,7 @@ canvas {
 #minimapCanvas {
   width: 100%;
   height: 100%;
-}
+} */
 
 @keyframes shake {
   0% {
@@ -350,7 +334,8 @@ canvas {
 
 #btn-play,
 #btn-to-tutorial,
-#btn-start-game {
+#btn-start-game,
+#btn-reload {
   padding: 16px 42px;
   background: linear-gradient(
     135deg,
@@ -375,7 +360,8 @@ canvas {
 }
 #btn-play:hover,
 #btn-to-tutorial:hover,
-#btn-start-game:hover {
+#btn-start-game:hover,
+#btn-reload:hover {
   transform: scale(1.02);
   background: linear-gradient(
     135deg,
@@ -398,53 +384,53 @@ canvas {
 }
 
 /* style.css */
+.overlay-full {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: black;
+  color: #eee;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  text-align: center;
+}
 
 .stage-title {
   font-size: 3rem;
-  letter-spacing: 10px;
-  color: #8b0000; /* Merah gelap */
-  text-shadow: 0 0 15px rgba(255, 0, 0, 0.7);
+  color: #ff0000;
+  text-shadow: 0 0 20px rgba(255, 0, 0, 0.7);
+  letter-spacing: 5px;
   margin-bottom: 10px;
-  animation: flicker 3s infinite;
+  text-transform: uppercase;
 }
 
 .stage-subtitle {
-  font-size: 1.2rem;
-  letter-spacing: 5px;
-  color: #666;
+  font-size: 1.5rem;
+  color: #cccccc;
+  font-style: italic;
+  letter-spacing: 2px;
 }
 
-/* Efek kedip halus untuk kesan horor */
-@keyframes flicker {
-  0%,
-  18%,
-  22%,
-  25%,
-  53%,
-  57%,
-  100% {
-    opacity: 1;
-  }
-  20%,
-  24%,
-  55% {
-    opacity: 0.4;
-  }
-}
-
-/* Animasi masuk dan keluar untuk seluruh layar stage */
+/* Class untuk menghilangkan screen dengan halus */
 .fade-out-scene {
-  animation: fadeOutScene 2s forwards;
+  opacity: 0;
   pointer-events: none;
 }
 
-@keyframes fadeOutScene {
+.fade-in {
+  animation: fadeInEffect 1.5s forwards;
+}
+
+@keyframes fadeInEffect {
   from {
-    opacity: 1;
+    opacity: 0;
   }
   to {
-    opacity: 0;
-    visibility: hidden;
+    opacity: 1;
   }
 }
 
@@ -532,9 +518,28 @@ canvas {
   gap: 10px;
 }
 
+.quest-item.locked {
+  color: #444; /* Warna abu-abu gelap */
+  font-style: italic;
+  opacity: 0.5;
+}
+
 .quest-item.active {
   color: #fff;
-  text-shadow: 0 0 5px #f00;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  animation: pulseQuest 2s infinite;
+}
+
+@keyframes pulseQuest {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 .quest-item.done {
   color: #44ff44;
@@ -570,6 +575,9 @@ canvas {
 .paper-text {
   font-size: 20px;
   margin-bottom: 20px;
+  white-space: pre-line; /* Agar \n (baris baru) terbaca di HTML */
+  line-height: 1.6;
+  font-family: "Crimson Text", serif; /* Gunakan font klasik jika ada */
 }
 .paper-footer {
   font-size: 12px;

@@ -41,7 +41,7 @@ export function render(
     let dist = 0;
     let hit = false;
     let wallType = 0;
-    let side = 0; // 0 untuk vertikal, 1 untuk horizontal (untuk shading)
+    let localSide = 0; // 0 untuk vertikal, 1 untuk horizontal (untuk shading)
 
     // DDA atau Simple Raycast
     while (!hit && dist < 32) {
@@ -57,9 +57,15 @@ export function render(
         dist = 32;
       } else {
         let cell = map[ty][tx];
-        if (cell > 0 && cell <= 3) {
+        if (
+          cell === 1 ||
+          cell === 2 ||
+          cell === 3 ||
+          cell === 10 ||
+          cell === 20
+        ) {
           // Sembunyikan pintu keluar (3) jika quest belum siap
-          if (cell === 3 && questStep < 3) continue;
+          // if (cell === 3 && questStep < 3) continue;
 
           // --- LOGIKA ANTI-DUPLIKASI PINTU ---
           let hitX = testX - tx;
@@ -82,7 +88,10 @@ export function render(
           // JIKA ini adalah Pintu (3), tapi ray menabrak sisi samping (localSide === 0),
           // ubah wallType menjadi Tembok Biasa (1)
           if (wallType === 3 && localSide === 0) {
-            wallType = 1;
+            if (map[ty][tx - 1] === 10 || map[ty][tx + 1] === 10) wallType = 10;
+            else if (map[ty][tx - 1] === 20 || map[ty][tx + 1] === 20)
+              wallType = 20;
+            else wallType = 1;
           }
 
           drawTexturedColumn(
@@ -254,15 +263,19 @@ function renderSprites(
   textures,
   watcher,
   watcherImg,
-  gameTime,
 ) {
   const sprites = [];
 
-  // 1. Scan map untuk mencari objek (4, 5, 6, 7)
+  // SCAN SEMUA OBJEK (4-7: Stage 1, 11-18: Stage 2, 21-27: Stage 3)
   for (let y = 0; y < map.length; y++) {
     for (let x = 0; x < map[y].length; x++) {
       let cell = map[y][x];
-      if (cell >= 4 && cell <= 7) {
+      // Range ID Sprite: 4-7, 11-18, 21-27
+      if (
+        (cell >= 4 && cell <= 7) ||
+        (cell >= 11 && cell <= 18) ||
+        (cell >= 21 && cell <= 27)
+      ) {
         sprites.push({ x: x + 0.5, y: y + 0.5, type: cell });
       }
     }
@@ -326,39 +339,80 @@ function renderSprites(
   });
 }
 
-export function drawMinimap(canvas, player, map, questStep) {
-  const ctx = canvas.getContext("2d");
-  const size = canvas.width; // Biasakan canvas minimap berbentuk square
-  const cellSize = size / map.length;
+// engine.js
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
-  ctx.fillRect(0, 0, size, size);
+// export function drawMinimap(canvas, player, watcher, map, questStep) {
+//   if (!canvas || !map || !map[0]) return; // Guard clause
 
-  for (let y = 0; y < map.length; y++) {
-    for (let x = 0; x < map[y].length; x++) {
-      let cell = map[y][x];
-      if (cell === 1) {
-        ctx.fillStyle = "#333";
-        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
-      } else if (cell === 2) {
-        ctx.fillStyle = "#1a331a";
-        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
-      } else if (cell === 3) {
-        ctx.fillStyle = "#440";
-        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
-      }
-    }
-  }
+//   const ctx = canvas.getContext("2d");
+//   const size = canvas.width;
 
-  // Player
-  ctx.fillStyle = "red";
-  ctx.beginPath();
-  ctx.arc(
-    player.x * cellSize,
-    player.y * cellSize,
-    cellSize * 0.8,
-    0,
-    Math.PI * 2,
-  );
-  ctx.fill();
-}
+//   // Pastikan cellSize terhitung dengan benar
+//   const mapCols = map[0].length;
+//   const cellSize = size / mapCols;
+
+//   // 1. Reset Canvas (Hapus gambar frame sebelumnya)
+//   ctx.clearRect(0, 0, size, size);
+//   ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+//   ctx.fillRect(0, 0, size, size);
+
+//   // 2. Gambar Struktur Map
+//   for (let y = 0; y < map.length; y++) {
+//     for (let x = 0; x < map[y].length; x++) {
+//       let cell = map[y][x];
+//       if (cell === 1 || cell === 10 || cell === 20) {
+//         // Tembok
+//         ctx.fillStyle = "#444";
+//         ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+//       } else if (cell === 2) {
+//         // Safe Zone
+//         ctx.fillStyle = "#1a331a";
+//         ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+//       } else if (cell === 3) {
+//         // Pintu Exit
+//         const isReady = questStep === 3 || questStep === 7 || questStep === 11;
+//         ctx.fillStyle = isReady ? "#0f0" : "#660";
+//         ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+//       }
+//     }
+//   }
+
+//   // 3. Gambar Jalur A* (Hanya jika watcher dan path ada)
+//   // Menggunakan Optional Chaining (?.) agar tidak error jika path kosong
+//   if (watcher?.path && Array.isArray(watcher.path) && watcher.path.length > 0) {
+//     ctx.strokeStyle = "rgba(0, 255, 0, 0.6)";
+//     ctx.lineWidth = 1;
+//     ctx.beginPath();
+//     ctx.moveTo(watcher.x * cellSize, watcher.y * cellSize);
+//     for (const point of watcher.path) {
+//       ctx.lineTo(point.x * cellSize, point.y * cellSize);
+//     }
+//     ctx.stroke();
+//   }
+
+//   // 4. Gambar Player (Merah)
+//   ctx.fillStyle = "red";
+//   ctx.beginPath();
+//   ctx.arc(
+//     player.x * cellSize,
+//     player.y * cellSize,
+//     cellSize * 0.7,
+//     0,
+//     Math.PI * 2,
+//   );
+//   ctx.fill();
+
+//   // 5. Gambar Watcher (Biru)
+//   if (watcher) {
+//     ctx.fillStyle = "blue";
+//     ctx.beginPath();
+//     ctx.arc(
+//       watcher.x * cellSize,
+//       watcher.y * cellSize,
+//       cellSize * 0.7,
+//       0,
+//       Math.PI * 2,
+//     );
+//     ctx.fill();
+//   }
+// }
