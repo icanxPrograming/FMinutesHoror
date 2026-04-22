@@ -1,7 +1,3 @@
-Tentu! Ini adalah versi **README.md** yang telah diperbarui ke **V.2.0**. Versi ini mencerminkan perubahan mekanik terbaru yang telah kita buat: penghilangan minimap untuk atmosfer yang lebih menantang, sistem objektif non-linear yang terkunci oleh catatan (Note-Gated), serta penambahan efek audio pernapasan dan visual stamina yang lebih realistis.
-
----
-
 # 🕯️ FIFTEEN MINUTES V.2.0: THE SILENT LABYRINTH
 
 **Fifteen Minutes V.2.0** adalah evolusi dari game horor psikologis berbasis web yang menggunakan teknik *Retro Raycasting Engine*. Dalam versi ini, bantuan navigasi visual telah ditarik, memaksa pemain untuk benar-benar merasakan isolasi dan ketakutan di dalam kegelapan yang pekat.
