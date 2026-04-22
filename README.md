@@ -64,7 +64,3 @@ Game ini menggunakan **ES6 Modules**. Pastikan Anda menjalankan melalui server l
 Dibuat untuk para pecinta horor retro. Gunakan kode ini untuk membangun mimpi burukmu sendiri.
 
 **"Waktu terus berjalan... dan dia tidak pernah berkedip."**
-
-*Ilustrasi: Tampilan UI minimalis V.2.0 yang lebih bersih dan menakutkan tanpa bantuan radar.*
-
-Apakah README ini sudah cukup merepresentasikan visi terbaru dari game kamu?
