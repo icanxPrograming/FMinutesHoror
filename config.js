@@ -171,6 +171,7 @@ export const QUEST_LIST = [
   },
 
   // --- STAGE 3: THE TEMPLE (Artifacts 1-5) ---
+  // --- STAGE 3: THE TEMPLE ---
   {
     id: 9,
     text: "Baca Peringatan Terakhir",
@@ -185,12 +186,20 @@ export const QUEST_LIST = [
     spriteIds: [21, 22, 23, 24, 25],
     stage: 3,
   },
-  { id: 11, text: "Cari 2 Kunci Segel", type: "KEY", count: 2, stage: 3 },
+  // Kunci dipisah agar spawn bertahap
   {
-    id: 12,
-    text: "Keluar dari Kuil",
-    type: "EXIT",
-    wallId: 3,
+    id: 11,
+    text: "Cari Kunci Segel Pertama",
+    type: "KEY",
+    spriteId: 26,
     stage: 3,
   },
+  {
+    id: 12,
+    text: "Cari Kunci Segel Kedua",
+    type: "KEY",
+    spriteId: 27,
+    stage: 3,
+  },
+  { id: 13, text: "Keluar dari Kuil", type: "EXIT", wallId: 3, stage: 3 },
 ];

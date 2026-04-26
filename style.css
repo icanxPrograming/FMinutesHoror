@@ -633,3 +633,63 @@ canvas {
   text-shadow: 0 0 10px #00ff00;
   display: none;
 }
+
+/* Pastikan Screen Utama menutupi seluruh layar */
+#intro-screen {
+  position: fixed; /* Gunakan fixed agar mutlak menutupi semua elemen */
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: black;
+  display: flex;
+  justify-content: center; /* Tengah Horizontal */
+  align-items: center; /* Tengah Vertikal */
+  z-index: 9999; /* Pastikan di atas segalanya */
+  cursor: pointer;
+}
+
+/* Wadah teks intro */
+.intro-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  width: 80%; /* Batasi lebar agar teks tidak menyentuh pinggir layar */
+}
+
+/* Pengaturan Teks Utama */
+.intro-text {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 1.8rem;
+  color: #e0e0e0;
+  margin: 0;
+  text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+  line-height: 1.6;
+  transition: opacity 1s ease-in-out;
+  /* Tambahkan ini agar transisi halus */
+  opacity: 0;
+}
+
+/* Pengaturan Subteks (Klik untuk melanjutkan) */
+.intro-subtext {
+  color: #444;
+  font-size: 0.9rem;
+  margin-top: 30px; /* Jarak antara teks utama dan petunjuk klik */
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.3;
+  }
+}
