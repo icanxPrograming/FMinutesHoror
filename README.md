@@ -1,66 +1,76 @@
-# 🕯️ FIFTEEN MINUTES V.2.0: THE SILENT LABYRINTH
+# 🕯️ FIFTEEN MINUTES NIGHTMARE (V.3.0)
 
-**Fifteen Minutes V.2.0** adalah evolusi dari game horor psikologis berbasis web yang menggunakan teknik *Retro Raycasting Engine*. Dalam versi ini, bantuan navigasi visual telah ditarik, memaksa pemain untuk benar-benar merasakan isolasi dan ketakutan di dalam kegelapan yang pekat.
+**Fifteen Minutes Nightmare** adalah evolusi mutakhir dari game horor psikologis berbasis web yang menggunakan teknik *Retro Raycasting Engine*. Dalam versi **NIGHTMARE** ini, seluruh bantuan navigasi visual telah ditarik, memaksa pemain untuk benar-benar merasakan isolasi, keputusasaan, dan ketakutan di dalam kegelapan yang pekat.
 
-## 🕹️ Fitur Utama (V.2.0)
+> *"Waktu terus berjalan... dan dia tidak pernah berkedip."*
 
-* **Atmospheric Realism (No Minimap)**: Minimap telah dihapus sepenuhnya. Pemain kini harus mengandalkan insting, hafal lorong, dan teks navigasi jarak untuk bertahan hidup.
-* **Adaptive Non-Linear Objectives**: Pemain kini memiliki kebebasan untuk mengambil kunci atau item koleksi (Buku/Artefak) dalam urutan apa pun, selama **Note (Catatan)** di stage tersebut telah dibaca.
-* **Physical Exit Logic**: Pintu keluar hanya akan terbuka secara fisik jika seluruh item di dalam peta telah dikumpulkan. Tidak ada jalan pintas.
-* **Dynamic Soundscape**:
-    * **Footsteps**: Perbedaan suara antara berjalan (`walk.mp3`) dan berlari (`running.mp3`).
-    * **Breathing**: Suara napas berat yang muncul saat stamina di bawah 15% atau saat dikejar oleh The Watcher.
-* **Stamina & Visual Stress**: Jika stamina habis, pemain otomatis melambat. Stamina rendah juga memicu efek *noise overlay* dan pandangan kabur (*blur*) karena kelelahan.
+---
+
+## 🕹️ Fitur Utama (V.3.0)
+
+*   **Atmospheric Realism (No Minimap)**: Minimap telah dihapus sepenuhnya. Pemain kini harus mengandalkan insting, memori spasial lorong, dan teks navigasi jarak adaptif untuk bertahan hidup.
+*   **Adaptive Non-Linear Objectives**: Kebebasan penuh untuk mengumpulkan item koleksi (Buku/Artefak) dalam urutan apa pun, selama **Gerbang Catatan (Note-Gated)** pada stage tersebut telah terbuka.
+*   **Physical Exit Logic**: Pintu keluar hanya akan terbuka secara fisik jika seluruh objektif di dalam peta telah dikumpulkan. Tidak ada jalan pintas menuju keselamatan.
+*   **Dynamic Soundscape**:
+    *   **Immersive Footsteps**: Perbedaan audio antara berjalan (`walk.mp3`) dan berlari (`running.mp3`).
+    *   **Stress Breathing**: Suara napas berat yang muncul saat stamina di bawah 15% atau saat berada dalam radius pengejaran *The Watcher*.
+*   **Stamina & Visual Stress**: Jika stamina habis, pemain otomatis melambat. Kondisi fisik yang lelah memicu efek *noise overlay* dan pandangan kabur (*blur*) secara dinamis.
+*   **Honorary Reward System**: Sistem klaim sertifikat dinamis bagi penyintas yang berhasil menyelesaikan game.
 
 ---
 
 ## 🎮 Mekanik Permainan
 
-1.  **Gerbang Catatan (Note-Gated)**: Setiap Stage diawali dengan sebuah catatan wajib. Kamu tidak bisa berinteraksi dengan item lain sebelum membaca catatan ini.
-2.  **Eksplorasi Bebas**: Setelah catatan dibaca, kumpulkan seluruh objektif yang tersebar.
-3.  **The Watcher**: Semakin dekat dia, detak jantungmu akan mengeras, layar akan mulai bergetar, dan *noise* visual akan menutupi pandanganmu.
+1.  **Gerbang Catatan**: Setiap Stage diawali dengan sebuah catatan wajib. Kamu tidak bisa berinteraksi dengan item lain sebelum membaca pesan terlarang ini.
+2.  **Eksplorasi & Survival**: Setelah catatan dibaca, kumpulkan seluruh objektif yang tersebar sambil menghindari patroli entitas.
+3.  **The Watcher**: Semakin dekat dia, detak jantung pemain akan mengeras, layar akan mulai bergetar, dan *visual noise* akan menutupi pandangan sebagai representasi rasa takut.
 4.  **Kontrol**:
-    * **W/A/S/D**: Pergerakan (Kecepatan berkurang saat stamina habis).
-    * **Shift (Hold)**: Berlari (Mengonsumsi Stamina).
-    * **E**: Interaksi (Membaca, Mengambil item, Membuka Pintu).
-    * **ESC**: Menutup antarmuka kertas petunjuk.
+    *   **W/A/S/D**: Pergerakan (Kecepatan berkurang drastis saat stamina habis).
+    *   **Shift (Hold)**: Berlari (Mengonsumsi Stamina).
+    *   **C / CTRL**: Jongkok (Mengurangi suara langkah kaki).
+    *   **E**: Interaksi (Membaca, Mengambil item, Membuka Pintu).
+    *   **ESC**: Menutup antarmuka kertas petunjuk/catatan.
 
 ---
 
 ## 🛠️ Arsitektur Kode (Modular)
 
-* `main.js`: Logika transisi stage (V.2.0), manajemen stamina, audio sinkronisasi, dan deteksi interaksi objektif.
-* `engine.js`: Render Raycasting 3D yang dioptimalkan untuk FPS tinggi dengan resolusi render internal 50%.
-* `ai.js`: Perilaku entitas (Patroli A* & Chase Mode) yang terintegrasi dengan efek peringatan jarak.
-* `config.js`: Definisi 3 Stage unik (Library, Basement, Altar) dan database objektif `QUEST_LIST`.
-* `assets.js`: Pusat manajemen 12+ aset audio dan sprite tekstur.
+Game ini dibangun dengan struktur modular untuk memudahkan pengembangan:
+
+*   **`main.js`**: Otak permainan; mengelola transisi stage, manajemen stamina, sinkronisasi audio, dan logika interaksi.
+*   **`engine.js`**: *Raycasting Engine* 3D yang dioptimalkan untuk FPS tinggi dengan resolusi render internal adaptif.
+*   **`ai.js`**: Perilaku entitas (Patroli A* & *Chase Mode*) yang terintegrasi dengan efek peringatan jarak.
+*   **`reward.js`**: Logika pembuatan sertifikat **"PENAKLUK MIMPI BURUK"** secara *real-time* menggunakan HTML5 Canvas.
+*   **`config.js`**: Database konfigurasi stage (Library, Basement, Altar) dan daftar objektif.
+*   **`assets.js`**: Manajemen aset terpusat untuk tekstur sprite dan 12+ audio atmosferik.
 
 ---
 
 ## 🚀 Instalasi & Jalankan
 
-Game ini menggunakan **ES6 Modules**. Pastikan Anda menjalankan melalui server lokal untuk menghindari isu CORS.
+Game ini menggunakan **ES6 Modules**. Untuk menghindari isu kebijakan CORS pada browser, Anda wajib menjalankannya melalui server lokal.
 
-1.  Clone/Download file.
-2.  Gunakan **Live Server** di VS Code atau jalankan perintah berikut di terminal:
+1.  **Clone/Download** repositori atau file proyek.
+2.  Gunakan **Live Server** di VS Code atau jalankan perintah Python di terminal dalam folder proyek:
     ```bash
-    # Python 3
+    # Jika menggunakan Python 3
     python -m http.server 8000
     ```
-3.  Buka `http://localhost:8000` di browser Anda.
+3.  Akses melalui browser di: `http://localhost:8000`
 
 ---
 
-## 📝 Catatan Versi 2.0 (Developer Notes)
+## 📝 Catatan Pengembang
 
-* **Audio Stability**: Perbaikan pada *IndexSizeError* volume suara dengan implementasi `Math.max(0, Math.min(1, vol))` pada seluruh audio dinamis.
-* **Navigation Fallback**: Sistem navigasi jarak kini bersifat adaptif; ia akan otomatis mencari item terdekat yang masih tersisa di peta (Buku -> Kunci -> Pintu).
-* **Optimasi Visual**: Penggunaan *Noise Overlay* yang lebih halus dan sinkron dengan status stamina pemain untuk meningkatkan imersi horor.
+*   **Audio Stability**: Implementasi pengaman volume `Math.max(0, Math.min(1, vol))` pada seluruh audio dinamis untuk mencegah *IndexSizeError*.
+*   **Navigation Fallback**: Sistem navigasi jarak kini bersifat adaptif; otomatis mencari item terdekat yang masih tersisa (Catatan -> Item -> Pintu).
+*   **Personalized Reward**: Sertifikat yang dihasilkan menyertakan nama pemain, tanggal penyelesaian, dan gelar kehormatan yang dapat diunduh dalam format PNG.
 
 ---
 
 ## ⚖️ Lisensi & Kredit
 
-Dibuat untuk para pecinta horor retro. Gunakan kode ini untuk membangun mimpi burukmu sendiri.
+Dibuat oleh **FMinutesXdakochan**.
+Dikembangkan untuk para pecinta horor retro dan eksperimen teknologi web.
 
-**"Waktu terus berjalan... dan dia tidak pernah berkedip."**
+**"Jangan biarkan dia membawamu ke dalam kegelapan."**
