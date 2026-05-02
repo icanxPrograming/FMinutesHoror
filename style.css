@@ -28,6 +28,9 @@ body {
   justify-content: center;
   align-items: center;
 }
+#game-content {
+  transition: filter 0.2s linear; /* Membuat efek blur masuk/keluar secara smooth */
+}
 canvas {
   width: 100%;
   height: 100%;
@@ -41,12 +44,14 @@ canvas {
   left: 0;
   width: 100%;
   height: 100%;
+  /* Transparent diperkecil ke 0%, sehingga kegelapan merambat ke tengah */
   background: radial-gradient(
     circle,
-    transparent 20%,
+    rgba(0, 0, 0, 0.2) 15%,
     rgba(0, 0, 0, 0.95) 100%
   );
   pointer-events: none;
+  z-index: 4;
 }
 #noise-overlay {
   position: absolute;
@@ -672,6 +677,16 @@ canvas {
   opacity: 0;
 }
 
+.highlight {
+  color: #ff4444; /* Merah pucat khas horror */
+  font-weight: bold;
+}
+
+.tutorial-grid {
+  line-height: 1.6;
+  max-width: 600px;
+}
+
 /* Pengaturan Subteks (Klik untuk melanjutkan) */
 .intro-subtext {
   color: #444;
@@ -692,4 +707,187 @@ canvas {
   100% {
     opacity: 0.3;
   }
+}
+
+/* ============================================================
+   REWARD SYSTEM & MODAL STYLES (FINAL OPTIMIZED)
+   ============================================================ */
+
+/* Overlay Utama */
+#reward-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.98); /* Hitam pekat */
+  backdrop-filter: blur(8px); /* Efek blur di belakang modal */
+  z-index: 99999; /* Pastikan di atas segala-galanya */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+/* Kotak Modal */
+.reward-box {
+  background: #0a0a0a;
+  border: 1px solid rgba(188, 149, 92, 0.5);
+  padding: 40px;
+  width: 90%;
+  max-width: 450px;
+  text-align: center;
+  box-shadow:
+    0 0 50px rgba(0, 0, 0, 1),
+    0 0 20px rgba(188, 149, 92, 0.1);
+  box-sizing: border-box; /* Kunci agar tidak overflow */
+  position: relative;
+  animation: modalSlideIn 0.5s cubic-bezier(0.17, 0.84, 0.44, 1);
+}
+
+.reward-box h2 {
+  color: #bc955c;
+  font-family: "Georgia", serif;
+  font-size: 1.8rem;
+  margin: 0 0 10px 0;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+.reward-box p {
+  color: #777;
+  font-size: 0.9rem;
+  margin-bottom: 25px;
+  font-style: italic;
+}
+
+/* Input Nama */
+#player-name-input {
+  width: 100%;
+  box-sizing: border-box; /* Penting agar tidak overflow */
+  background: #000;
+  border: 1px solid #333;
+  border-bottom: 2px solid #bc955c;
+  padding: 15px;
+  color: #fff;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 1.3rem;
+  text-align: center;
+  outline: none;
+  transition: all 0.3s ease;
+  margin-bottom: 25px;
+}
+
+#player-name-input:focus {
+  background: #111;
+  border-color: #fff;
+  box-shadow: 0 0 15px rgba(188, 149, 92, 0.2);
+}
+
+/* Tombol Submit Nama */
+#btn-submit-name {
+  background: #bc955c;
+  color: #000;
+  border: none;
+  padding: 15px;
+  font-weight: 900;
+  font-size: 1rem;
+  text-transform: uppercase;
+  cursor: pointer;
+  letter-spacing: 2px;
+  transition: 0.3s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#btn-submit-name:hover {
+  background: #fff;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+/* Preview Sertifikat */
+.cert-preview {
+  max-width: 95%;
+  max-height: 65vh;
+  border: 4px solid #bc955c;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 1);
+  margin: 10px auto 25px auto;
+  display: block;
+  box-sizing: border-box;
+  animation: certAppear 1.2s ease-out;
+}
+
+/* Tombol Aksi Final (Unduh & Main Lagi) */
+.modal-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  width: 100%;
+  max-width: 600px; /* Batasi agar tombol tidak terlalu lebar di monitor besar */
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.modal-buttons button {
+  background: rgba(0, 0, 0, 0.5);
+  flex: 1;
+  border: 1px solid #bc955c;
+  color: #bc955c;
+  padding: 12px 10px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: 0.3s;
+  outline: none;
+}
+
+.modal-buttons button:first-child {
+  background: rgba(188, 149, 92, 0.15);
+}
+
+.modal-buttons button:hover {
+  background: #bc955c;
+  color: #000;
+  box-shadow: 0 0 15px rgba(188, 149, 92, 0.5);
+}
+
+/* Animasi */
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes certAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+    filter: brightness(2);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+/* Layout Akhir (Overlay Win/Lose) */
+#overlay-screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 30px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+#overlay-screen img {
+  margin-bottom: 20px;
 }

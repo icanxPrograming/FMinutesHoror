@@ -2,14 +2,14 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <title>FIFTEEN MINUTES REMAINING</title>
+    <title>FIFTEEN MINUTES NIGHTMARE</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div id="game-container">
       <div id="main-menu">
         <div id="noise-overlay"></div>
-        <h1 class="horror-title">F MINUTES</h1>
+        <h1 class="horror-title">FMINUTES NIGHTMARE</h1>
         <p class="horror-subtitle">WAKTU HANYA ILUSI YANG MEMATIKAN</p>
         <button id="btn-play">KLIK UNTUK BERMAIN</button>
       </div>
@@ -27,22 +27,42 @@
       <div id="tutorial-screen" class="hidden overlay-full">
         <div class="content-box tutorial-grid">
           <h2>INSTRUKSI SURVIVAL</h2>
+
           <div class="tutorial-item">
-            <strong>KONTROL:</strong> [W,A,S,D] Gerak | [MOUSE] Lihat | [SHIFT]
-            Lari | [E] Interaksi
+            <strong>KONTROL:</strong>
+            <br />[W,A,S,D] Gerak | [MOUSE] Lihat | [E] Interaksi<br /><span
+              class="highlight"
+              >[SHIFT] Lari</span
+            ><br /><span class="highlight">[C / CTRL] Jongkok</span>
           </div>
+
           <div class="tutorial-item">
-            <strong>STAMINA:</strong> Jangan lari terus-menerus atau kamu akan
-            kelelahan saat dikejar.
+            <strong>PENDENGARAN:</strong>
+            The Watcher memiliki pendengaran yang tajam. Berlari akan
+            memberitahukan posisimu meski di balik tembok.
+            <strong>Gunakan Jongkok</strong> untuk melewatinya dari belakang.
           </div>
+
           <div class="tutorial-item">
-            <strong>SANITY:</strong> Jangan terlalu dekat dengan
-            <b>The Watcher</b>. Kegelapan akan membutakanmu.
+            <strong>PENGLIHATAN:</strong>
+            The Watcher hanya bisa melihat apa yang ada di depannya. Manfaatkan
+            kelalaiannya saat dia membelakangimu. Jangan biarkan
+            <b>Sanity</b>-mu habis.
           </div>
+
           <div class="tutorial-item">
-            <strong>MISI:</strong> Bertahan hidup selama 15 menit dalam 3 stage,
-            temukan petunjuk untuk melarikan diri.
+            <strong>TITIK AMAN:</strong>
+            <br />Area <b>Respawn/Spawn</b> adalah satu-satunya tempat di mana
+            <b>The Watcher</b> tidak bisa menyentuhmu. Gunakan area ini untuk
+            memulihkan diri.
           </div>
+
+          <div class="tutorial-item">
+            <strong>MISI:</strong>
+            Selesaikan semua objektif di setiap stage untuk membuka segel
+            gerbang. Waktu 15 menit adalah segalanya.
+          </div>
+
           <button id="btn-start-game">MASUK KE LABIRIN</button>
         </div>
       </div>
@@ -105,6 +125,22 @@
         <h1 id="screen-title">TERTANGKAP</h1>
         <p id="death-reason">The Watcher menemukanmu dalam kegelapan.</p>
         <button id="btn-reload" onclick="location.reload()">COBA LAGI</button>
+      </div>
+
+      <div id="reward-modal" class="hidden overlay-full">
+        <div class="content-box reward-box">
+          <h2>KLAIM PENGHARGAAN</h2>
+          <p>Ukirlah namamu sebagai penyintas labirin.</p>
+          <input
+            type="text"
+            id="player-name-input"
+            placeholder="Masukkan Nama Anda..."
+            maxlength="20"
+          />
+          <div class="modal-buttons">
+            <button id="btn-submit-name">TERBITKAN SERTIFIKAT</button>
+          </div>
+        </div>
       </div>
     </div>
     <script type="module" src="main.js"></script>

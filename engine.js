@@ -2,7 +2,7 @@
 
 /**
  * Fungsi utama untuk merender dunia 3D
- * textures: Object berisi { walls: { 1: img, 2: img, 3: img }, floors: { floor1: img, floor2: img }, sprites: { 4: img... } }
+ * Ditambahkan parameter watcherBackImg untuk merender tampak belakang
  */
 export function render(
   ctx,
@@ -17,19 +17,19 @@ export function render(
   isSafeTimerActive,
   safeZoneTime,
   watcherImg,
+  watcherBackImg,
   gameTime,
-  textures, // Objek gambar yang sudah dimuat
+  textures,
+  handSway, // Parameter baru untuk efek ayunan tangan
 ) {
   const yOffset = cameraBobY * (canvas.height / 5);
   const depthBuffer = [];
 
-  // 1. RENDER LANGIT-LANGIT & LANTAI (Textured)
-  // Jika aset lantai belum dimuat, gunakan fallback warna
+  // 1. RENDER LANGIT-LANGIT & LANTAI
   renderBackground(ctx, canvas, player, textures, yOffset);
 
   // 2. RAYCASTING UNTUK DINDING
-  const rayStep = 0.01; // Langkah lebih kecil untuk akurasi tekstur
-
+  const rayStep = 0.01;
   for (let i = 0; i < canvas.width; i++) {
     let rayAngle =
       player.dir - currentFOV / 2 + (i / canvas.width) * currentFOV;
@@ -41,9 +41,7 @@ export function render(
     let dist = 0;
     let hit = false;
     let wallType = 0;
-    let localSide = 0; // 0 untuk vertikal, 1 untuk horizontal (untuk shading)
 
-    // DDA atau Simple Raycast
     while (!hit && dist < 32) {
       dist += rayStep;
       let testX = player.x + dx * dist;
@@ -64,29 +62,19 @@ export function render(
           cell === 10 ||
           cell === 20
         ) {
-          // Sembunyikan pintu keluar (3) jika quest belum siap
-          // if (cell === 3 && questStep < 3) continue;
-
-          // --- LOGIKA ANTI-DUPLIKASI PINTU ---
           let hitX = testX - tx;
           let hitY = testY - ty;
-          let texX = 0;
           let localSide = 0;
 
-          // Tentukan sisi mana yang tertabrak
           if (Math.abs(hitX - 0) < 0.02 || Math.abs(hitX - 1) < 0.02) {
-            texX = hitY;
-            localSide = 0; // Sisi Vertikal (Kiri/Kanan blok)
+            localSide = 0;
           } else {
-            texX = hitX;
-            localSide = 1; // Sisi Horizontal (Depan/Belakang blok)
+            localSide = 1;
           }
 
           hit = true;
           wallType = cell;
 
-          // JIKA ini adalah Pintu (3), tapi ray menabrak sisi samping (localSide === 0),
-          // ubah wallType menjadi Tembok Biasa (1)
           if (wallType === 3 && localSide === 0) {
             if (map[ty][tx - 1] === 10 || map[ty][tx + 1] === 10) wallType = 10;
             else if (map[ty][tx - 1] === 20 || map[ty][tx + 1] === 20)
@@ -102,21 +90,20 @@ export function render(
             rayAngle,
             player,
             wallType,
-            texX,
-            localSide, // gunakan variabel side lokal
+            localSide === 0 ? hitY : hitX,
+            localSide,
             yOffset,
             textures,
           );
         }
       }
     }
-
     let correctedDist =
       dist * Math.cos(rayAngle - (player.dir + cameraBobX * 0.1));
     depthBuffer[i] = correctedDist;
   }
 
-  // 3. RENDER SPRITES (Kunci, Note, Lampu, Watcher)
+  // 3. RENDER SPRITES (Watcher, Items, etc)
   renderSprites(
     ctx,
     canvas,
@@ -128,8 +115,44 @@ export function render(
     textures,
     watcher,
     watcherImg,
-    gameTime,
+    watcherBackImg,
   );
+
+  // 4. RENDER TANGAN PEMAIN (Weapon/Hand Sway)
+  // Digambar paling akhir agar selalu di atas semua objek dunia
+  drawPlayerHand(ctx, canvas, player, textures, handSway);
+}
+
+// --- FUNGSI BARU UNTUK MENGGAMBAR TANGAN ---
+// engine.js
+
+function drawPlayerHand(ctx, canvas, player, textures, handSway) {
+  const handImg = textures.sprites["hand"];
+  if (!handImg) return;
+
+  const aspectRatio = handImg.width / handImg.height;
+
+  // Ukuran tangan (sesuaikan 0.8 jika dirasa terlalu besar/kecil)
+  const handHeight = canvas.height * 0.8;
+  const handWidth = handHeight * aspectRatio;
+
+  // --- PERBAIKAN POSISI KE TENGAH ---
+  // (canvas.width / 2) - (handWidth / 2) membuat gambar tepat di tengah horizontal
+  const posX = canvas.width / 2 - handWidth / 2 + (handSway?.x || 0);
+
+  // Posisi Y tetap di bawah, sedikit naik jika ingin lebih terlihat
+  const posY =
+    canvas.height -
+    handHeight * 0.9 +
+    (handSway?.y || 0) +
+    (player.isCrouching ? 40 : 0);
+
+  ctx.save();
+  // Filter agar tangan terlihat gelap dan menyatu dengan suasana horror
+  ctx.filter = "brightness(0.6) contrast(1.2)";
+
+  ctx.drawImage(handImg, posX, posY, handWidth, handHeight);
+  ctx.restore();
 }
 
 // Fungsi menggambar kolom dinding dengan tekstur
@@ -155,90 +178,47 @@ function drawTexturedColumn(
   const img = textures.walls[wallType];
   if (!img) return;
 
-  // Ambil potongan gambar secara vertikal
   const sourceX = Math.floor(texX * img.width);
   const drawY = (canvas.height - wallH) / 2 + yOffset;
 
-  ctx.drawImage(
-    img,
-    sourceX,
-    0,
-    1,
-    img.height, // Source: ambil 1 pixel lebar
-    x,
-    drawY,
-    1,
-    wallH, // Destination
-  );
+  ctx.drawImage(img, sourceX, 0, 1, img.height, x, drawY, 1, wallH);
 
-  // DEPTH SHADING: Gelapkan dinding berdasarkan jarak
   let opacity = Math.min(0.9, dist / 15);
   ctx.fillStyle = `rgba(0, 0, 0, ${opacity})`;
   ctx.fillRect(x, drawY, 1, wallH);
 
-  // SIDE SHADING: Beri bayangan tambahan pada sisi samping agar terlihat 3D
   if (side === 1) {
     ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
     ctx.fillRect(x, drawY, 1, wallH);
   }
 }
 
-// Fungsi menggambar lantai dan langit-langit (Background)
-// engine.js
-
+// Fungsi menggambar lantai dan langit-langit
 export function renderBackground(ctx, canvas, player, textures, yOffset) {
   const w = canvas.width;
   const h = canvas.height;
   const halfHeight = h / 2 + yOffset;
 
-  // 1. ATAP (Tetap solid agar hemat performa)
   ctx.fillStyle = "#050505";
   ctx.fillRect(0, 0, w, halfHeight);
 
-  // 2. LANTAI (Metode Scanline yang Sinkron)
   const floorImg = textures?.floors?.floor1;
   if (floorImg && floorImg.complete) {
-    // Kita tidak menggambar per-pixel (berat), tapi per-baris (scanline)
-    // Semakin sedikit jumlah baris, semakin ringan
-    const quality = 2; // Naikkan ke 4 atau 8 jika masih berat (semakin besar semakin ringan tapi pecah)
-
+    const quality = 2;
     for (let y = halfHeight; y < h; y += quality) {
-      // Hitung jarak horizontal dari kamera ke titik di lantai pada baris Y ini
-      // Formula: distance = height / (pixel_y - center_y)
       const p = y - halfHeight;
       if (p === 0) continue;
-
       const straightDist = h / (2.0 * p);
-
-      // Hitung posisi lantai di dunia (World Coordinates)
       const floorX = player.x + Math.cos(player.dir) * straightDist;
       const floorY = player.y + Math.sin(player.dir) * straightDist;
 
-      // Kita gunakan potongan tipis dari tekstur
-      // Agar ringan, kita gunakan drawImage untuk "meregangkan" satu baris pattern
-      const texSize = 64; // Ukuran ubin
-      const tx = (floorX * texSize) % floorImg.width;
-      const ty = (floorY * texSize) % floorImg.height;
-
-      // Efek shading: semakin jauh semakin gelap
+      const texSize = 64;
       const shadow = Math.min(1, straightDist / 10);
       ctx.globalAlpha = 1 - shadow;
 
-      ctx.drawImage(
-        floorImg,
-        0,
-        0,
-        floorImg.width,
-        1, // Ambil satu baris pixel (dummy logic)
-        0,
-        y,
-        w,
-        quality, // Gambar melintangi layar
-      );
+      ctx.drawImage(floorImg, 0, 0, floorImg.width, 1, 0, y, w, quality);
     }
     ctx.globalAlpha = 1;
-
-    // Tambahkan gradien penutup agar lantai tidak terlihat "belang"
     const grad = ctx.createLinearGradient(0, halfHeight, 0, h);
     grad.addColorStop(0, "black");
     grad.addColorStop(0.5, "rgba(0,0,0,0.5)");
@@ -251,7 +231,7 @@ export function renderBackground(ctx, canvas, player, textures, yOffset) {
   }
 }
 
-// Gabungan render Watcher dan Sprite Objektif (Kunci, Note, dll)
+// MODIFIKASI: Render Watcher dengan logika Directional
 function renderSprites(
   ctx,
   canvas,
@@ -263,14 +243,13 @@ function renderSprites(
   textures,
   watcher,
   watcherImg,
+  watcherBackImg, // Terima parameter baru
 ) {
   const sprites = [];
 
-  // SCAN SEMUA OBJEK (4-7: Stage 1, 11-18: Stage 2, 21-27: Stage 3)
   for (let y = 0; y < map.length; y++) {
     for (let x = 0; x < map[y].length; x++) {
       let cell = map[y][x];
-      // Range ID Sprite: 4-7, 11-18, 21-27
       if (
         (cell >= 4 && cell <= 7) ||
         (cell >= 11 && cell <= 18) ||
@@ -281,23 +260,35 @@ function renderSprites(
     }
   }
 
-  // 2. Tambahkan Watcher ke daftar sprite
+  // --- LOGIKA SPRITE DIRECTIONAL UNTUK WATCHER ---
+  // 1. Hitung sudut antara Watcher ke Player
+  const dxW = player.x - watcher.x;
+  const dyW = player.y - watcher.y;
+  const angleToPlayer = Math.atan2(dyW, dxW);
+
+  // 2. Bandingkan dengan arah hadap Watcher (moveAngle dari AI)
+  // watcher.moveAngle adalah arah hantu berjalan
+  let viewDiff = watcher.moveAngle - angleToPlayer;
+
+  // Normalisasi sudut ke -PI sampai PI
+  while (viewDiff < -Math.PI) viewDiff += Math.PI * 2;
+  while (viewDiff > Math.PI) viewDiff -= Math.PI * 2;
+
+  // 3. Jika selisih sudut kecil (kurang dari 90 derajat), berarti hantu membelakangi kita
+  const isBackView = Math.abs(viewDiff) > Math.PI / 2;
+
   sprites.push({
     x: watcher.x,
     y: watcher.y,
     type: "WATCHER",
-    img: watcherImg,
+    img: isBackView ? watcherBackImg : watcherImg, // Pilih gambar sesuai sudut
   });
 
-  // 3. Urutkan sprite dari yang terjauh (Penting agar render tidak tumpang tindih)
   sprites.sort((a, b) => {
     let distA = Math.hypot(a.x - player.x, a.y - player.y);
     let distB = Math.hypot(b.x - player.x, b.y - player.y);
     return distB - distA;
   });
-
-  // 4. Gambar Sprite
-  // engine.js - Di dalam fungsi renderSprites
 
   sprites.forEach((s) => {
     let dx = s.x - player.x;
@@ -313,8 +304,6 @@ function renderSprites(
       let sh = canvas.height / dist;
       let screenX = Math.floor(sx);
 
-      // --- PERBAIKAN: DEPTH CHECK DENGAN BIAS ---
-      // Kita kurangi jarak sprite sebesar 0.2 unit agar "menang" melawan Z-Buffer tembok
       const depthBias = 0.2;
 
       if (
@@ -325,11 +314,7 @@ function renderSprites(
         let img = s.type === "WATCHER" ? s.img : textures.sprites[s.type];
 
         if (img) {
-          // Atur posisi Y agar note tidak tenggelam ke lantai
-          // yOffset adalah efek bobbing kamera
           let spriteY = (canvas.height - sh) / 2 + yOffset;
-
-          // Jika itu Note (4), kita bisa turunkan sedikit agar terlihat menempel dinding bawah
           if (s.type === 4) spriteY += sh * 0.1;
 
           ctx.drawImage(img, sx - sh / 2, spriteY, sh, sh);
@@ -338,81 +323,3 @@ function renderSprites(
     }
   });
 }
-
-// engine.js
-
-// export function drawMinimap(canvas, player, watcher, map, questStep) {
-//   if (!canvas || !map || !map[0]) return; // Guard clause
-
-//   const ctx = canvas.getContext("2d");
-//   const size = canvas.width;
-
-//   // Pastikan cellSize terhitung dengan benar
-//   const mapCols = map[0].length;
-//   const cellSize = size / mapCols;
-
-//   // 1. Reset Canvas (Hapus gambar frame sebelumnya)
-//   ctx.clearRect(0, 0, size, size);
-//   ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
-//   ctx.fillRect(0, 0, size, size);
-
-//   // 2. Gambar Struktur Map
-//   for (let y = 0; y < map.length; y++) {
-//     for (let x = 0; x < map[y].length; x++) {
-//       let cell = map[y][x];
-//       if (cell === 1 || cell === 10 || cell === 20) {
-//         // Tembok
-//         ctx.fillStyle = "#444";
-//         ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
-//       } else if (cell === 2) {
-//         // Safe Zone
-//         ctx.fillStyle = "#1a331a";
-//         ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
-//       } else if (cell === 3) {
-//         // Pintu Exit
-//         const isReady = questStep === 3 || questStep === 7 || questStep === 11;
-//         ctx.fillStyle = isReady ? "#0f0" : "#660";
-//         ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
-//       }
-//     }
-//   }
-
-//   // 3. Gambar Jalur A* (Hanya jika watcher dan path ada)
-//   // Menggunakan Optional Chaining (?.) agar tidak error jika path kosong
-//   if (watcher?.path && Array.isArray(watcher.path) && watcher.path.length > 0) {
-//     ctx.strokeStyle = "rgba(0, 255, 0, 0.6)";
-//     ctx.lineWidth = 1;
-//     ctx.beginPath();
-//     ctx.moveTo(watcher.x * cellSize, watcher.y * cellSize);
-//     for (const point of watcher.path) {
-//       ctx.lineTo(point.x * cellSize, point.y * cellSize);
-//     }
-//     ctx.stroke();
-//   }
-
-//   // 4. Gambar Player (Merah)
-//   ctx.fillStyle = "red";
-//   ctx.beginPath();
-//   ctx.arc(
-//     player.x * cellSize,
-//     player.y * cellSize,
-//     cellSize * 0.7,
-//     0,
-//     Math.PI * 2,
-//   );
-//   ctx.fill();
-
-//   // 5. Gambar Watcher (Biru)
-//   if (watcher) {
-//     ctx.fillStyle = "blue";
-//     ctx.beginPath();
-//     ctx.arc(
-//       watcher.x * cellSize,
-//       watcher.y * cellSize,
-//       cellSize * 0.7,
-//       0,
-//       Math.PI * 2,
-//     );
-//     ctx.fill();
-//   }
-// }

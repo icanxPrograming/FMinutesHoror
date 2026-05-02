@@ -8,8 +8,10 @@ import {
   SPRITE_ASSETS,
   FLOOR_TEXTURES,
 } from "./config.js";
+import { generateCertificate, openRewardModal } from "./reward.js";
 import {
   watcherImg,
+  watcherBackImg,
   backsound,
   jumpscareSound,
   heartbeat,
@@ -29,9 +31,9 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
 const STAGE_NAMES = {
-  1: { title: "HAUNTED LIBRARY", subtitle: "STAGE 1" },
-  2: { title: "THE FORGOTTEN BASEMENT", subtitle: "STAGE 2" },
-  3: { title: "CURSED ALTAR", subtitle: "STAGE 3" },
+  1: { title: "KEHENINGAN PUSTAKA", subtitle: "GERBANG MIMPI BURUK" },
+  2: { title: "PENJARA BAWAH TANAH", subtitle: "SIMPANG KELAM" },
+  3: { title: "GERBANG KEMATIAN", subtitle: "PENENTU TAKDIR" },
 };
 
 // --- TAMBAHKAN VARIABEL BARU DI ATAS ---
@@ -41,12 +43,13 @@ const introScenes = [
   "Kelopak matamu terasa berat, namun jiwamu berteriak ketakutan...",
   "Dalam kegelapan yang tak berujung, 'The Watcher' telah memilihmu.",
   "Mimpi buruk ini bukan lagi sekadar khayalan. Ini adalah penjaramu.",
-  "Selamat datang di labirin takdir. Kamu punya 15 menit... sebelum semuanya lenyap.",
+  "Selamat datang di labirin mimpi buruk. Disinilah kamu menentukan takdirmu.",
+  "Kamu hanya punya 15 menit... sebelum mimpi buruk ini menelanmu.",
 ];
 let currentIntroIndex = 0;
 const stageIntros = {
   2: "The Watcher menyeretmu ke dalam mimpi yang lebih buruk segeralah bergegas sebelum semuanya terlambat",
-  3: "Ini adalah kesempatan terakhirmu, jika kamu bisa menyelesaikannya kamu selamat, jika kamu tidak bisa maka itu adalah akhir bagimu!",
+  3: "Ini adalah kesempatan terakhirmu, jika kamu bisa menyelesaikannya kamu selamat, jika kamu tidak maka itu adalah akhir bagimu!",
 };
 const endingScenes = [
   "Cahaya fajar mulai menembus sela-sela kegelapan...",
@@ -121,6 +124,7 @@ let player = {
   stamina: 100,
   sanity: 100,
   sensitivity: 0.002,
+  isCrouching: false,
 };
 let currentStage = 1;
 let currentMap = JSON.parse(JSON.stringify(MAP_S1));
@@ -146,6 +150,9 @@ let cameraBobX = 0,
 let isPaused = false;
 let patrolRoute = [];
 const keys = {};
+// --- STATE UNTUK ANIMASI TANGAN ---
+let handSway = { x: 0, y: 0 };
+let handBobTimer = 0;
 
 // UI Elements
 const menuScene = document.getElementById("main-menu");
@@ -160,8 +167,13 @@ const stageScreen = document.getElementById("stage-screen");
 // --- EVENT LISTENERS ---
 canvas.addEventListener("click", () => canvas.requestPointerLock());
 document.addEventListener("mousemove", (e) => {
-  if (document.pointerLockElement === canvas && !isGameOver && !isPaused)
+  if (document.pointerLockElement === canvas && !isGameOver && !isPaused) {
     player.dir += e.movementX * player.sensitivity;
+
+    // Tangan bergerak berlawanan dengan arah mouse sedikit
+    handSway.x -= e.movementX * 0.4;
+    handSway.x = Math.max(-40, Math.min(40, handSway.x));
+  }
 });
 window.onkeydown = (e) => {
   keys[e.code] = true;
@@ -474,7 +486,39 @@ function update() {
   const noiseOverlay = document.getElementById("noise-overlay");
   const prompt = document.getElementById("interaction-prompt");
 
-  // 1. UPDATE AI & DAPATKAN JARAK
+  // --- 1. LOGIKA STATUS PLAYER ---
+  const forwardMove = (keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0);
+  const strafeMove = (keys["KeyD"] ? 1 : 0) - (keys["KeyA"] ? 1 : 0);
+  const isMoving = forwardMove !== 0 || strafeMove !== 0;
+
+  player.isCrouching = keys["KeyC"] || keys["ControlLeft"];
+  const hasStamina = player.stamina > 0;
+
+  // Baru gunakan hasStamina di dalam isRunning
+  const isRunning =
+    keys["ShiftLeft"] && hasStamina && isMoving && !player.isCrouching;
+
+  let playerStatus = {
+    isMoving: isMoving,
+    isRunning: isRunning,
+    isCrouching: player.isCrouching,
+  };
+
+  // --- LOGIKA AYUNAN TANGAN (HAND SWAY & BOBBING) ---
+  // Kembalikan tangan ke posisi tengah perlahan
+  handSway.x *= 0.85;
+  handSway.y *= 0.85;
+
+  if (isMoving) {
+    const bobSpeed = isRunning ? 0.25 : player.isCrouching ? 0.05 : 0.12;
+    const bobAmount = isRunning ? 12 : player.isCrouching ? 2 : 6;
+
+    handBobTimer += bobSpeed;
+    handSway.y += Math.sin(handBobTimer * 2) * (bobAmount * 0.5);
+    handSway.x += Math.cos(handBobTimer) * (bobAmount * 0.3);
+  }
+
+  // UPDATE AI
   let dist = updateAI(
     watcher,
     player,
@@ -483,11 +527,72 @@ function update() {
     false,
     pickNewPatrolTarget,
     patrolRoute,
+    playerStatus,
   );
 
-  // 2. LOGIKA PERINGATAN VISUAL & AUDIO (Berdasarkan Jarak 'dist' & Stamina)
+  const baseSpeed = 0.02;
+  let currentSpeed = baseSpeed;
+  let tFOV = Math.PI / 2.2;
 
-  // A. Logika Audio (Heartbeat & Breathing)
+  if (player.isCrouching) {
+    currentSpeed = baseSpeed * 0.4;
+    tFOV = Math.PI / 2.4;
+    player.stamina = Math.min(100, player.stamina + 0.45); // Pulih lebih cepat saat jongkok
+  } else if (isRunning) {
+    currentSpeed = baseSpeed * 1.5;
+    player.stamina -= 0.15;
+    tFOV = Math.PI / 1.8;
+  } else {
+    // JIKA SHIFT DITEKAN TAPI STAMINA HABIS (KELELAHAN)
+    if (keys["ShiftLeft"] && !hasStamina && isMoving) {
+      currentSpeed = baseSpeed * 0.4; // Jalan lebih lambat karena lelah
+    } else {
+      currentSpeed = baseSpeed;
+    }
+
+    tFOV = Math.PI / 2.2;
+    player.stamina = Math.min(100, player.stamina + 0.35); // Pemulihan normal
+  }
+
+  // Integrasikan targetFOV ke currentFOV untuk transisi smooth
+  currentFOV += (tFOV - currentFOV) * 0.1;
+
+  // --- 3. MOVEMENT CALCULATION (Kunci Agar Bisa Gerak) ---
+  let moveStep = forwardMove * currentSpeed;
+  if (forwardMove < 0) moveStep *= 0.6; // Mundur lebih lambat
+
+  // Hitung posisi baru (Maju/Mundur + Strafe)
+  let nx =
+    player.x +
+    Math.cos(player.dir) * moveStep +
+    Math.cos(player.dir + Math.PI / 2) * (strafeMove * currentSpeed);
+
+  let ny =
+    player.y +
+    Math.sin(player.dir) * moveStep +
+    Math.sin(player.dir + Math.PI / 2) * (strafeMove * currentSpeed);
+
+  // Collision Detection
+  const solidCells = [1, 3, 10, 20];
+  const mapX = Math.floor(nx);
+  const mapY = Math.floor(ny);
+
+  // Pastikan koordinat dalam batas map sebelum cek tabrakan
+  if (
+    mapY >= 0 &&
+    mapY < currentMap.length &&
+    mapX >= 0 &&
+    mapX < currentMap[0].length
+  ) {
+    const targetCellAtNewPos = currentMap[mapY][mapX];
+
+    if (!solidCells.includes(targetCellAtNewPos)) {
+      player.x = nx;
+      player.y = ny;
+    }
+  }
+
+  // --- 4. AUDIO & VISUAL WARNING ---
   if (dist < 7.0) {
     if (heartbeat.paused) heartbeat.play().catch(() => {});
     heartbeat.volume = Math.max(0, Math.min(1, (7.0 - dist) / 7.0));
@@ -495,263 +600,199 @@ function update() {
     heartbeat.volume = 0;
   }
 
-  // Suara napas (Breathing) jika stamina kritis (< 15%)
+  // Pernapasan
   if (player.stamina < 15 || (dist < 4 && watcher.state === STATES.CHASE)) {
     if (breathingSound.paused) {
       breathingSound.currentTime = 0;
       breathingSound.play().catch(() => {});
     }
-
-    // Gunakan Math.max dan Math.min agar volume tidak meledak di luar rentang [0, 1]
-    let calculatedVolume = (20 - player.stamina) / 20;
-    breathingSound.volume = Math.max(0, Math.min(1, calculatedVolume));
+    let breathingVol = (20 - player.stamina) / 20;
+    breathingSound.volume = Math.max(0, Math.min(1, breathingVol));
   } else if (player.stamina > 50) {
     breathingSound.pause();
   }
 
-  // B. Logika Visual (Blur & Noise Gabungan)
-  let finalBlur = 0;
-  let finalNoiseOpacity = 0;
+  // Kamera Bobbing
+  if (isMoving) {
+    walkCycle += isRunning ? 0.25 : player.isCrouching ? 0.05 : 0.15;
+    cameraBobX =
+      Math.cos(walkCycle) *
+      (isRunning ? 0.15 : player.isCrouching ? 0.04 : 0.08);
+    cameraBobY =
+      Math.sin(walkCycle * 2) *
+      (isRunning ? 0.1 : player.isCrouching ? 0.02 : 0.05);
 
-  // Hitung intensitas dari hantu
-  if (dist < 5.0) {
-    finalBlur = Math.min(2.5, (5.0 - dist) * 0.5);
-    finalNoiseOpacity = Math.min(0.4, (5.0 - dist) * 0.08);
-  }
-
-  // Hitung intensitas dari stamina rendah (Overlay sesak napas)
-  if (player.stamina < 20) {
-    const staminaStress = Math.max(0, (20 - player.stamina) / 40); // Max 0.5
-    finalNoiseOpacity = Math.max(finalNoiseOpacity, staminaStress);
-    finalBlur = Math.max(finalBlur, staminaStress * 3); // Mata buram saat lelah
-  }
-
-  // TERAPKAN KE DOM (Hanya satu kali pemanggilan agar tidak bentrok)
-  if (gameContentElem) {
-    gameContentElem.style.filter =
-      finalBlur > 0 ? `blur(${finalBlur}px)` : "none";
-  }
-
-  if (noiseOverlay) {
-    if (finalNoiseOpacity > 0) {
-      noiseOverlay.style.display = "block";
-      noiseOverlay.style.opacity = finalNoiseOpacity;
+    // Suara Langkah
+    if (!player.isCrouching) {
+      if (isRunning) {
+        if (runningSound.paused) runningSound.play().catch(() => {});
+        walkSound.pause();
+      } else {
+        if (walkSound.paused) walkSound.play().catch(() => {});
+        runningSound.pause();
+      }
     } else {
-      noiseOverlay.style.opacity = 0;
-      noiseOverlay.style.display = "none";
-    }
-  }
-
-  // 3. LOGIKA SANITY (Pengurangan pelan saat dikejar)
-  if (dist < 3 && watcher.state === STATES.CHASE) {
-    player.sanity -= 0.05;
-  } else {
-    if (player.sanity < 100) player.sanity += 0.06;
-  }
-
-  // 4. INTERAKSI OBJEK
-  let interactDist = 1.5;
-  let lookX = player.x + Math.cos(player.dir) * interactDist;
-  let lookY = player.y + Math.sin(player.dir) * interactDist;
-  let targetCell = currentMap[Math.floor(lookY)]
-    ? currentMap[Math.floor(lookY)][Math.floor(lookX)]
-    : 0;
-
-  // Cek jika objek adalah Item Interaktif (Note, Kunci, Buku, Artefak)
-  const isInteractable =
-    (targetCell >= 4 && targetCell <= 6) ||
-    (targetCell >= 11 && targetCell <= 18) ||
-    (targetCell >= 21 && targetCell <= 27);
-  if (isInteractable) {
-    if (prompt) {
-      prompt.style.display = "block";
-      prompt.innerText = "[E] PERIKSA";
-    }
-
-    if (keys["KeyE"] && !isPaused) {
-      const gridX = Math.floor(lookX);
-      const gridY = Math.floor(lookY);
-      const currentQuest = QUEST_LIST[questStep];
-
-      // Cek apakah item yang dilihat adalah target quest saat ini
-      let isTargetValid = false;
-      if (currentQuest.type === "COLLECT") {
-        isTargetValid = currentQuest.spriteIds.includes(targetCell);
-      } else {
-        isTargetValid =
-          targetCell === (currentQuest.spriteId || currentQuest.wallId);
-      }
-
-      if (isTargetValid) {
-        if (targetCell === 4) {
-          // --- NOTES ---
-          noteReadSound.currentTime = 0;
-          noteReadSound.play();
-
-          let msg = "";
-          const extraWarning =
-            "\n\n(Ingat: Segel pintu keluar hanya akan terbuka jika seluruh tugas telah diselesaikan.)";
-          if (currentStage === 1)
-            msg =
-              "Catatan: 'Cari 2 kunci untuk membuka pintu keluar perpustakaan. Waspadalah, mereka mengawasi dari balik rak buku.'" +
-              extraWarning;
-          else if (currentStage === 2)
-            msg =
-              "Catatan: 'Kumpulkan 7 catatan sihir kuno yang tersebar di basement ini. Kekuatannya akan memunculkan kunci segel pintu.'" +
-              extraWarning;
-          else if (currentStage === 3)
-            msg =
-              "Peringatan Terakhir: 'Kumpulkan 5 Artefak Kuno dan temukan 2 kunci segel. Selalu waspada terhadap sekitarmu.'" +
-              extraWarning;
-
-          currentMap[gridY][gridX] = 0;
-          completeQuestStep(questStep);
-          spawnObjectives(); // Munculkan Kunci 1 atau Buku
-          showPaperContent(msg);
-        } else if ([5, 6, 18, 26, 27].includes(targetCell)) {
-          // --- KUNCI ---
-          keyPickupSound.currentTime = 0;
-          keyPickupSound.play();
-          currentMap[gridY][gridX] = 0;
-          showGameMessage("Kunci didapatkan!");
-          completeQuestStep(questStep);
-          spawnObjectives(); // Munculkan Kunci berikutnya atau arahkan ke Pintu
-        } else {
-          // --- ITEM KOLEKSI (Buku/Artefak) ---
-          itemPickupSound.currentTime = 0;
-          itemPickupSound.play();
-          currentMap[gridY][gridX] = 0;
-
-          // Cek apakah koleksi tipe ini sudah habis di map
-          let remaining = 0;
-          currentMap.forEach((row) =>
-            row.forEach((cell) => {
-              if (currentQuest.spriteIds.includes(cell)) remaining++;
-            }),
-          );
-
-          if (remaining === 0) {
-            completeQuestStep(questStep);
-            spawnObjectives(); // Munculkan KUNCI setelah buku/artefak habis
-          } else {
-            updateQuestUI();
-          }
-        }
-      } else {
-        // Jika mencoba mengambil item yang belum waktunya
-        lockingDoorSound.currentTime = 0;
-        lockingDoorSound.play();
-        showGameMessage("Aku belum membutuhkan benda ini sekarang...");
-      }
-      keys["KeyE"] = false;
-    }
-  } else if (targetCell === 3) {
-    // PINTU EXIT
-    if (prompt) {
-      prompt.style.display = "block";
-      // Jika sudah ambil semua kunci (questStep >= 3)
-      prompt.innerText = isStageCleared() ? "[E] KELUAR" : "PINTU TERKUNCI";
-    }
-
-    if (keys["KeyE"] && !isPaused) {
-      if (isStageCleared()) {
-        openDoorSound.currentTime = 0;
-        openDoorSound.play();
-
-        // BERHENTIKAN UPDATE AGAR PLAYER TIDAK JALAN SAAT TRANSISI
-        isPaused = true;
-
-        setTimeout(() => {
-          // LOGIKA TRANSISI:
-          if (currentStage < 3) {
-            nextStage(); // Pindah ke stage berikutnya
-            // isPaused = false;
-          } else {
-            endGame("BERHASIL KELUAR"); // Tamat jika sudah stage 3
-          }
-        }, 500);
-      } else {
-        // --- KONDISI: PINTU MASIH TERKUNCI ---
-        // Mainkan suara gagang pintu yang digoyang (locking)
-        lockingDoorSound.currentTime = 0;
-        lockingDoorSound.play();
-
-        showGameMessage("Aku belum menyelesaikan semua tugas di sini...");
-      }
-    }
-  } else {
-    if (prompt) prompt.style.display = "none";
-  }
-
-  // 5. MOVEMENT & COLLISION
-  const baseSpeed = 0.02;
-  const forwardMove = (keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0);
-  const strafeMove = (keys["KeyD"] ? 1 : 0) - (keys["KeyA"] ? 1 : 0);
-  let moveStep = 0;
-  const isMoving = forwardMove !== 0 || strafeMove !== 0;
-  const isRunning = keys["ShiftLeft"] && player.stamina > 0 && keys["KeyW"];
-
-  if (isRunning) {
-    moveStep = baseSpeed * 1.5;
-    player.stamina -= 0.15; // Stamina lebih awet
-    targetFOV = Math.PI / 1.8;
-    // Suara Running
-    if (isMoving) {
-      if (runningSound.paused) runningSound.play().catch(() => {});
       walkSound.pause();
-    }
-  } else {
-    if (forwardMove > 0) moveStep = baseSpeed;
-    if (forwardMove < 0) moveStep = -baseSpeed * 0.6;
-    if (player.stamina < 100) player.stamina += 0.35;
-    targetFOV = Math.PI / 2.2;
-    // Suara Walk
-    if (isMoving) {
-      if (walkSound.paused) walkSound.play().catch(() => {});
       runningSound.pause();
     }
-  }
-  // Matikan suara langkah jika diam
-  if (!isMoving || isPaused || isGameOver) {
+  } else {
+    cameraBobX *= 0.9;
+    cameraBobY *= 0.9;
     walkSound.pause();
     runningSound.pause();
   }
 
-  currentFOV += (targetFOV - currentFOV) * 0.1;
-
-  // Camera Bobbing
-  if (moveStep !== 0 || strafeMove !== 0) {
-    walkCycle += isRunning ? 0.25 : 0.15;
-    cameraBobX = Math.cos(walkCycle) * (isRunning ? 0.15 : 0.08);
-    cameraBobY = Math.sin(walkCycle * 2) * (isRunning ? 0.1 : 0.05);
-  } else {
-    cameraBobX *= 0.9;
-    cameraBobY *= 0.9;
+  // Efek Visual (Blur & Noise)
+  let fBlur = 0;
+  let fNoise = 0;
+  if (dist < 6.0) {
+    // Kita naikkan base blur agar lebih terasa sampai ke tengah
+    // Makin dekat (dist kecil), fBlur makin besar
+    fBlur = Math.min(5.0, (6.0 - dist) * 1.2);
+    fNoise = Math.min(0.5, (6.0 - dist) * 0.1);
+  }
+  if (player.stamina < 25) {
+    const stressLevel = Math.max(0, (25 - player.stamina) / 25); // Range 0 - 1
+    fNoise = Math.max(fNoise, stressLevel * 0.4);
+    // Stamina kritis membuat pandangan sangat kabur
+    fBlur = Math.max(fBlur, stressLevel * 4);
   }
 
-  let nx =
-    player.x +
-    Math.cos(player.dir) * moveStep +
-    Math.cos(player.dir + Math.PI / 2) * baseSpeed * strafeMove;
-  let ny =
-    player.y +
-    Math.sin(player.dir) * moveStep +
-    Math.sin(player.dir + Math.PI / 2) * baseSpeed * strafeMove;
-
-  let walkCell = currentMap[Math.floor(ny)]
-    ? currentMap[Math.floor(ny)][Math.floor(nx)]
-    : 1;
-  const solidCells = [1, 3, 10, 20];
-  if (!solidCells.includes(walkCell)) {
-    // Jika koordinat baru BUKAN benda padat, maka player boleh pindah
-    player.x = nx;
-    player.y = ny;
+  if (gameContentElem) {
+    // Gunakan filter blur pada container utama
+    // Penambahan 'brightness' opsional agar saat blur tidak terlalu gelap
+    if (fBlur > 0) {
+      gameContentElem.style.filter = `blur(${fBlur}px) brightness(${1 - fBlur * 0.05})`;
+    } else {
+      gameContentElem.style.filter = "none";
+    }
+  }
+  if (noiseOverlay) {
+    if (fNoise > 0) {
+      noiseOverlay.style.display = "block";
+      noiseOverlay.style.opacity = fNoise;
+      // Tambahkan class untuk animasi getar noise
+      noiseOverlay.classList.add("active-noise");
+    } else {
+      noiseOverlay.style.opacity = 0;
+      noiseOverlay.style.display = "none";
+      noiseOverlay.classList.remove("active-noise");
+    }
   }
 
-  // 6. KONDISI KALAH
+  // --- 5. LOGIKA SANITY & INTERAKSI ---
+  if (dist < 5 && watcher.state === STATES.CHASE) {
+    player.sanity -= 0.1;
+  } else if (player.sanity < 100) {
+    player.sanity += 0.05;
+  }
+
+  // Deteksi interaksi di depan mata
+  let lookDist = 1.5;
+  let lX = player.x + Math.cos(player.dir) * lookDist;
+  let lY = player.y + Math.sin(player.dir) * lookDist;
+  let tCell = currentMap[Math.floor(lY)]?.[Math.floor(lX)] || 0;
+
+  const canInteract =
+    (tCell >= 4 && tCell <= 6) ||
+    (tCell >= 11 && tCell <= 18) ||
+    (tCell >= 21 && tCell <= 27) ||
+    tCell === 3;
+
+  if (canInteract) {
+    if (prompt) {
+      prompt.style.display = "block";
+      prompt.innerText =
+        tCell === 3
+          ? isStageCleared()
+            ? "[E] KELUAR"
+            : "PINTU TERKUNCI"
+          : "[E] PERIKSA";
+    }
+    if (keys["KeyE"] && !isPaused) {
+      handleInteraction(tCell, Math.floor(lX), Math.floor(lY));
+      keys["KeyE"] = false;
+    }
+  } else if (prompt) {
+    prompt.style.display = "none";
+  }
+
+  // --- 6. KONDISI AKHIR ---
   if (player.sanity <= 0) endGame("SANITY HABIS");
   if (gameTime <= 0) endGame("WAKTU HABIS");
-  if (dist < 0.3) triggerJumpscare();
+  if (dist < 0.4) triggerJumpscare();
+}
+
+// Fungsi pembantu interaction agar update() tidak terlalu panjang
+function handleInteraction(cell, gridX, gridY) {
+  if (cell === 3) {
+    if (isStageCleared()) {
+      openDoorSound.play();
+      isPaused = true;
+      setTimeout(
+        () => (currentStage < 3 ? nextStage() : endGame("BERHASIL KELUAR")),
+        500,
+      );
+    } else {
+      lockingDoorSound.play();
+      showGameMessage("Aku belum menyelesaikan tugas...");
+    }
+    return;
+  }
+
+  const currentQuest = QUEST_LIST[questStep];
+  let isValid =
+    currentQuest.type === "COLLECT"
+      ? currentQuest.spriteIds.includes(cell)
+      : cell === (currentQuest.spriteId || currentQuest.wallId);
+
+  if (isValid) {
+    if (cell === 4) {
+      noteReadSound.play();
+      let msg = "";
+      const extraWarning =
+        "\n\n(Peringatan: Segel pintu keluar hanya akan terbuka jika seluruh tugas telah diselesaikan.)";
+      if (currentStage === 1)
+        msg =
+          "Catatan: 'Cari 2 kunci untuk membuka pintu keluar perpustakaan. Waspadalah dia mengintaimu dalam kegelapan.'" +
+          extraWarning;
+      else if (currentStage === 2)
+        msg =
+          "Catatan: 'Kumpulkan 7 catatan sihir kuno dan kunci basement. Tetap waspada dia berada didekatmu'" +
+          extraWarning;
+      else if (currentStage === 3)
+        msg =
+          "Peringatan Terakhir: 'Kumpulkan 5 Artefak Kuno dan 2 kunci segel. Hati hati mimpi buruk ini semakin kuat'" +
+          extraWarning;
+      currentMap[gridY][gridX] = 0;
+      completeQuestStep(questStep);
+      spawnObjectives();
+      showPaperContent(msg);
+    } else if ([5, 6, 18, 26, 27].includes(cell)) {
+      keyPickupSound.play();
+      currentMap[gridY][gridX] = 0;
+      showGameMessage("Kunci didapatkan!");
+      completeQuestStep(questStep);
+      spawnObjectives();
+    } else {
+      itemPickupSound.play();
+      currentMap[gridY][gridX] = 0;
+      // Cek sisa item
+      let rem = 0;
+      currentMap.forEach((r) =>
+        r.forEach((c) => {
+          if (currentQuest.spriteIds?.includes(c)) rem++;
+        }),
+      );
+      if (rem === 0) {
+        completeQuestStep(questStep);
+        spawnObjectives();
+      } else updateQuestUI();
+    }
+  } else {
+    lockingDoorSound.play();
+    showGameMessage("Belum waktunya...");
+  }
 }
 
 function isStageCleared() {
@@ -913,6 +954,10 @@ function triggerJumpscare() {
   jumpscareActive = true;
   isGameOver = true;
   backsound.pause();
+  walkSound.pause();
+  runningSound.pause();
+  breathingSound.pause();
+  heartbeat.pause();
   jumpscareSound.play();
   let startTime = null;
   function animate(timestamp) {
@@ -929,15 +974,14 @@ function triggerJumpscare() {
       canvas.width,
       canvas.height,
     );
-    if (progress < 1) requestAnimationFrame(animate);
-    else {
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      // JEDA SEDIKIT SETELAH JUMPSCARE, LALU MASUK KE NARASI KEMATIAN
       setTimeout(() => {
-        const screen = document.getElementById("overlay-screen");
-        screen.classList.remove("hidden");
-        screen.classList.add("lose-screen");
-        document.getElementById("screen-title").innerText = "DIMANGSA";
-        document.exitPointerLock();
-      }, 400);
+        // Panggil fungsi narasi estetik, kita beri status "TERTANGKAP"
+        playDeathSequence("TERTANGKAP");
+      }, 1500);
     }
   }
   requestAnimationFrame(animate);
@@ -945,24 +989,149 @@ function triggerJumpscare() {
 
 function endGame(status) {
   isGameOver = true;
-  isPaused = true; // Hentikan semua pergerakan
+  isPaused = true;
   document.exitPointerLock();
+
+  // Hentikan semua audio
   backsound.pause();
+  walkSound.pause();
+  runningSound.pause();
+  breathingSound.pause();
+  heartbeat.pause();
+
+  walkSound.currentTime = 0;
+  runningSound.currentTime = 0;
+
+  const screen = document.getElementById("overlay-screen");
+  const reloadBtn = document.getElementById("btn-reload");
 
   if (status === "BERHASIL KELUAR") {
-    // Jalankan Intro Ending Estetik
+    // 1. Jalankan narasi teks ending
     playEndingSequence();
+
+    // 2. Modifikasi tombol untuk klaim sertifikat
+    // Kita beri sedikit delay agar muncul setelah narasi/transisi (opsional)
+    setTimeout(() => {
+      reloadBtn.innerText = "KLAIM PENGHARGAAN";
+      reloadBtn.style.background = "#bc955c"; // Warna emas
+      reloadBtn.style.color = "#000";
+      reloadBtn.classList.remove("hidden");
+
+      // Logic ketika tombol Klaim diklik
+      reloadBtn.onclick = () => {
+        openRewardModal((playerName) => {
+          // Render sertifikat ke canvas
+          const canvas = generateCertificate(playerName);
+
+          // Bersihkan isi overlay untuk menampilkan gambar sertifikat
+          screen.innerHTML = "";
+
+          const img = document.createElement("img");
+          img.src = canvas.toDataURL("image/png");
+          img.className = "cert-preview"; // Style yang sudah kita buat di CSS
+          screen.appendChild(img);
+
+          // Buat container tombol Unduh & Main Lagi
+          const btnGroup = document.createElement("div");
+          btnGroup.className = "modal-buttons";
+
+          const dlBtn = document.createElement("button");
+          dlBtn.innerText = "UNDUH PNG";
+          dlBtn.onclick = () => {
+            const link = document.createElement("a");
+            link.download = `Sertifikat_Penakluk_${playerName}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+          };
+
+          const restartBtn = document.createElement("button");
+          restartBtn.innerText = "MAIN LAGI";
+          restartBtn.onclick = () => location.reload();
+
+          btnGroup.appendChild(dlBtn);
+          btnGroup.appendChild(restartBtn);
+          screen.appendChild(btnGroup);
+        });
+      };
+    }, 1000);
   } else {
-    // Jika kalah (Sanity/Waktu habis), langsung munculkan layar kalah
-    const screen = document.getElementById("overlay-screen");
-    screen.classList.remove("hidden");
-    screen.classList.add("lose-screen");
-    document.getElementById("screen-title").innerText = "TERTINGGAL";
-    document.getElementById("death-reason").innerText =
-      status === "SANITY HABIS"
-        ? "Jiwamu hancur dalam kegelapan."
-        : "Waktu telah habis. Kamu terjebak selamanya.";
+    // Jika mati/kalah, jalankan sequence kematian seperti biasa
+    playDeathSequence(status);
+
+    // Pastikan tombol reload kembali ke fungsi aslinya (refresh game)
+    reloadBtn.innerText = "COBA LAGI";
+    reloadBtn.style.background = "";
+    reloadBtn.style.color = "";
+    reloadBtn.onclick = () => location.reload();
   }
+}
+
+function playDeathSequence(reason) {
+  const introScreen = document.getElementById("intro-screen");
+  const introTextElem = document.getElementById("intro-text");
+
+  introScreen.classList.remove("hidden");
+  introScreen.style.display = "flex";
+  introScreen.style.backgroundColor = "#000";
+  introScreen.style.opacity = "1";
+  introTextElem.style.color = "#ff4444";
+
+  let deathMessages = []; // Narasi puitis untuk layar hitam
+  let finalTitle = ""; // Judul besar di layar akhir
+  let finalReason = ""; // Penjelasan singkat di bawah judul
+
+  if (reason === "TERTANGKAP") {
+    finalTitle = "DIMANGSA MIMPI BURUK";
+    finalReason = "The Watcher telah menelanmu ke dalam kegelapan abadi.";
+    deathMessages = [
+      "Langkahmu terhenti oleh dinginnya cengkeraman...",
+      "Kehangatan hidupmu mulai memudar.",
+      "Kini, kau adalah bagian dari kegelapan ini.",
+    ];
+  } else if (reason === "SANITY HABIS") {
+    finalTitle = "HILANG KEWARASAN";
+    finalReason = "Pikiranmu hancur oleh mimpi buruk yang tak tertahankan.";
+    deathMessages = [
+      "Kesadaranmu mulai retak...",
+      "Bisikan itu tak lagi bisa kau tahan.",
+      "Duniamu runtuh dalam kehampaan abadi.",
+    ];
+  } else {
+    finalTitle = "WAKTU HABIS";
+    finalReason = "Kamu terjebak di mimpi buruk selamanya.";
+    deathMessages = [
+      "Detik terakhir telah berlalu...",
+      "Waktu mengkhianati harapanmu.",
+      "Pintu itu telah tertutup untuk selamanya.",
+    ];
+  }
+
+  let msgIndex = 0;
+  function showNextDeathText() {
+    if (msgIndex < deathMessages.length) {
+      introTextElem.style.opacity = 0;
+      setTimeout(() => {
+        introTextElem.innerText = deathMessages[msgIndex];
+        introTextElem.style.opacity = 1;
+        msgIndex++;
+        setTimeout(showNextDeathText, 3000);
+      }, 1000);
+    } else {
+      introScreen.classList.add("fade-out-scene");
+      setTimeout(() => {
+        introScreen.classList.add("hidden");
+        const screen = document.getElementById("overlay-screen");
+
+        // Memasukkan data yang sudah dibedakan
+        document.getElementById("screen-title").innerText = finalTitle;
+        document.getElementById("death-reason").innerText = finalReason;
+
+        screen.classList.remove("hidden");
+        screen.classList.add("lose-screen");
+      }, 1500);
+    }
+  }
+  showNextDeathText();
 }
 
 function playEndingSequence() {
@@ -999,7 +1168,8 @@ function playEndingSequence() {
         const screen = document.getElementById("overlay-screen");
         screen.classList.remove("hidden");
         screen.classList.add("win-screen");
-        document.getElementById("screen-title").innerText = "TERLEPAS";
+        document.getElementById("screen-title").innerText =
+          "SELAMAT DARI MIMPI BURUK";
         document.getElementById("death-reason").innerText =
           "Kamu selamat hari ini. Matahari terasa begitu hangat.";
       }, 1500);
@@ -1012,7 +1182,14 @@ function playEndingSequence() {
 function gameLoop() {
   if (!isGameOver) {
     update();
-    // KIRIM OBJEK TEXTURES KE ENGINE
+
+    // 1. Hitung Offset Kamera untuk Jongkok
+    // Kita tambahkan konstanta tinggi pandangan yang lebih rendah saat jongkok
+    const crouchCameraHeight = player.isCrouching ? 0.2 : 0;
+    const finalCameraBobY = cameraBobY + crouchCameraHeight;
+
+    // 2. KIRIM PARAMETER KE ENGINE
+    // Pastikan watcherBackImg sudah diimpor dari assets.js atau textures
     render(
       ctx,
       canvas,
@@ -1021,28 +1198,42 @@ function gameLoop() {
       currentMap,
       currentFOV,
       cameraBobX,
-      cameraBobY,
+      finalCameraBobY, // Menggunakan Y yang sudah ditambah offset jongkok
       questStep,
       isSafeTimerActive,
       safeZoneTime,
-      watcherImg,
+      watcherImg, // Aset Tampak Depan (sudah ada)
+      watcherBackImg, // Aset Tampak Belakang (Baru)
       gameTime,
       textures,
+      handSway,
     );
 
+    // 3. Update Navigasi & Minimap
+    updateNavigation();
+
+    // Opsional: Jika ingin minimap aktif, buka komentarnya
     // const minimapCanvas = document.getElementById("minimapCanvas");
     // if (minimapCanvas) {
     //   drawMinimap(minimapCanvas, player, watcher, currentMap, questStep);
     // }
-    updateNavigation();
 
-    document.getElementById("stamina-fill").style.width = player.stamina + "%";
-    document.getElementById("sanity-fill").style.width = player.sanity + "%";
-    let mins = Math.floor(gameTime / 60),
-      secs = Math.floor(gameTime % 60);
-    document.getElementById("timer").innerText =
-      `${mins}:${secs.toString().padStart(2, "0")}`;
+    // 4. Update UI Status Bar
+    const staminaFill = document.getElementById("stamina-fill");
+    const sanityFill = document.getElementById("sanity-fill");
 
+    if (staminaFill) staminaFill.style.width = player.stamina + "%";
+    if (sanityFill) sanityFill.style.width = player.sanity + "%";
+
+    // 5. Update Timer
+    let mins = Math.floor(gameTime / 60);
+    let secs = Math.floor(gameTime % 60);
+    const timerElem = document.getElementById("timer");
+    if (timerElem) {
+      timerElem.innerText = `${mins}:${secs.toString().padStart(2, "0")}`;
+    }
+
+    // 6. Loop Animasi
     requestAnimationFrame(gameLoop);
   }
 }

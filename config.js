@@ -27,6 +27,7 @@ export const FLOOR_TEXTURES = {
 
 // 3. DEFINISI SPRITE/OBJEK (Objek interaktif)
 export const SPRITE_ASSETS = {
+  hand: { src: "./assets/sprites/hand2.png" },
   // Universal/Disclaimer
   4: {
     src: "assets/sprites/note.png",

@@ -4,6 +4,12 @@
 export const watcherImg = new Image();
 watcherImg.src = "The-Watcher.png";
 
+export const watcherBackImg = new Image();
+watcherBackImg.src = "The-Watcher-Back.png";
+
+export const handImg = new Image();
+handImg.src = "./assets/sprites/hand2.png";
+
 // --- BACKGROUND & AMBIENT SOUNDS ---
 export const backsound = new Audio("Backsound.MP3");
 backsound.loop = true;
